@@ -20,6 +20,7 @@ def pressSendButton():
         var.MsgType = "CHAT_REQUEST"
         var.targetId = var.msgBody.split()[1]
 
+
     else:
         var.MsgType = "MESSAGE"
     dataStr = pickle.dumps(var)
@@ -38,18 +39,26 @@ def guiBuilder():
 # This method will run on it own thread 
 # to allow the client to send and receive data without blocking 
 def msgRecv():
-    keepChat = False
-    while keepChat == False:
+
+    while   True:
+
+
+
         data = (socketServOne.recv(1024))
         # Handle object data
         try:
             # Unpickle data
             dataMsg = pickle.loads(data)
             appWindow.setTextArea('TextAreaScroll', str(dataMsg.msgBody) + '\n')
+            if dataMsg.msgBody == 'talk end':
+                break
 
         # Handle normal data type  data 
         except:
             appWindow.setTextArea('TextAreaScroll', str(data.decode()) + '\n')
+
+
+
 
 
 def msgSend():
@@ -71,11 +80,15 @@ dataStr = pickle.dumps(var)
 socketServOne.send(dataStr)
 
 # Start the client message receiver thread
+keepChat = False
 threading.Thread(target=msgRecv).start()
-
+#msgRecv()
 # start the GUI
 guiBuilder()
 appWindow.go()
 # Exit and end thread
-socketServOne.close()
-os._exit(0)
+keepChat =True
+#threading.Thread(target=msgRecv).join()
+#socketServOne.close()
+#os._exit(0)
+print("end?")

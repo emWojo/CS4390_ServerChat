@@ -38,18 +38,25 @@ def guiBuilder():
 # This method will run on it own thread
 # to allow the client to send and receive data without blocking
 def msgRecv():
-    keepChat = False
-    while keepChat == False:
+    while   True:
+
+
+
         data = (socketServOne.recv(1024))
         # Handle object data
         try:
             # Unpickle data
             dataMsg = pickle.loads(data)
             appWindow.setTextArea('TextAreaScroll', str(dataMsg.msgBody) + '\n')
+            if dataMsg.msgBody == 'talk end':
+                break
 
         # Handle normal data type  data
         except:
             appWindow.setTextArea('TextAreaScroll', str(data.decode()) + '\n')
+
+
+
 
 
 def msgSend():

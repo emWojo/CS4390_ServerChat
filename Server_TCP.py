@@ -130,6 +130,9 @@ while True:
                     busyMsgByte = bytes(busyMsg, 'utf-8')
                     readInput[connectedClientsId.index(int(dataObject.senderId))].send(busyMsgByte)
 
+
+
+
             # Process a chat message
             else:
 

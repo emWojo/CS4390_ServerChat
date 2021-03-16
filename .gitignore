@@ -1,1 +1,4 @@
 /IndividualReport.docx
+.idea/
+__pycache__/
+venv/
