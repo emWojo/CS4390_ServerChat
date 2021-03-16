@@ -50,6 +50,7 @@ def msgRecv():
             # Unpickle data
             dataMsg = pickle.loads(data)
             appWindow.setTextArea('TextAreaScroll', str(dataMsg.msgBody) + '\n')
+			# Temporery use talk end command from the other client to end the read and exit so it does not run in the background 
             if dataMsg.msgBody == 'talk end':
                 break
 
@@ -80,15 +81,11 @@ dataStr = pickle.dumps(var)
 socketServOne.send(dataStr)
 
 # Start the client message receiver thread
-keepChat = False
 threading.Thread(target=msgRecv).start()
 #msgRecv()
 # start the GUI
 guiBuilder()
 appWindow.go()
 # Exit and end thread
-keepChat =True
-#threading.Thread(target=msgRecv).join()
-#socketServOne.close()
-#os._exit(0)
-print("end?")
+socketServOne.close()
+os._exit(0)

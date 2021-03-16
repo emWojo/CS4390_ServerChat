@@ -148,32 +148,33 @@ while True:
                     del messageOutputQueue[socketType]
 
     # Handle writing socket to client
-
     for socketType in write:
         try:
-            next_msg = messageOutputQueue[socketType].get_nowait()
+            msg = messageOutputQueue[socketType].get_nowait()
         except queue.Empty:
             writeOutput.remove(socketType)
         else:
+	# Direct the message to specfic clients
 
             try:
                 # Before sending any messages the server will check if the message pair been intilized and the socket type
                 # matched
                 if (readInput[connectedClientsCurrent] == socketType) and (connectedClientsTarget != -1) :
 
-                    readInput[connectedClientsId.index(int(dataObject.targetId))].send(next_msg)
+                    readInput[connectedClientsId.index(int(dataObject.targetId))].send(msg)
                 elif connectedClientsCurrent != -1 :
                     # Find if the sender and  target are a valid pair
                     if isClientBusy(connectedClientsId.index(int(dataObject.senderId))) != None:
-                        readInput[isClientBusy(connectedClientsId.index(int(dataObject.senderId)))].send(next_msg)
+                        readInput[isClientBusy(connectedClientsId.index(int(dataObject.senderId)))].send(msg)
 
                 else:
                     print("ValueError")
                     raise ValueError
 
 
-
+			# Temporary error message for unexpected input
             except  ValueError:
                 busyMsg = 'TEMP msg - Switched message to invalid client during chat ? Make sure target client is connected ?'
                 busyMsgByte = bytes(busyMsg, 'utf-8')
                 readInput[connectedClientsId.index(int(dataObject.senderId))].send(busyMsgByte)
+#socketServer.close() will close after the server is correctly exists
