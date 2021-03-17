@@ -41,7 +41,6 @@ def udp_thread():
                 del addrToId[addr]
                 print("fail challenge")
         elif data[0] == "RESPONSE":
-            print(clients[addrToId[addr]])
             if clients[addrToId[addr]] == int(data[1]):
                 resp = "AUTH_SUCCESS"
                 print("succ")

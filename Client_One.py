@@ -86,6 +86,7 @@ while True:
                 clientSocket.send(dataObject)
                 threading.Thread(target=msgRecv).start()
             if udpConnect:
+                # Time out period
                 udpSocket.settimeout(5)
                 reply = udpSocket.recv(1024).decode('utf-8').split()
                 print(reply)
