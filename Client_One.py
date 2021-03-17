@@ -1,90 +1,93 @@
-import os
-import pickle
 import socket
-import sys
+from MessageObject import MessageObject
+import pickle
 import threading
-import time
 
-from appJar import gui
-from MessageObject import MessageObject  # from ProtocolMessage can be use if multie class select ?
-
-var = MessageObject("", -1, -1, -1)
-appWindow = gui()
-
-
-# This method will execute once the send button in the GUI is clicked
-def pressSendButton():
-    var.msgBody = appWindow.getEntry('EntrySend')
-    # The client id, most likely a temporary placement
-    var.senderId = 111
-    if var.msgBody.split()[0] == "chat":
-
-        var.MsgType = "CHAT_REQUEST"
-        var.targetId = var.msgBody.split()[1]
-
-    else:
-        var.MsgType = "MESSAGE"
-    dataStr = pickle.dumps(var)
-    socketServOne.send(dataStr)
-
-
-# This method will build the GUI
-def guiBuilder():
-    appWindow.setSize("400x400")
-    appWindow.addLabel("Cl-1", "Client-1")
-    appWindow.addScrolledTextArea("TextAreaScroll", text=None)
-    appWindow.addEntry("EntrySend")
-    appWindow.addButton("Send", pressSendButton)
-
-
-# This method will run on it own thread
-# to allow the client to send and receive data without blocking
 def msgRecv():
-    while   True:
-
-
-
-        data = (socketServOne.recv(1024))
+    while  True:
+        dataClient = (clientSocket.recv(4096))
         # Handle object data
         try:
             # Unpickle data
-            dataMsg = pickle.loads(data)
-            appWindow.setTextArea('TextAreaScroll', str(dataMsg.msgBody) + '\n')
-			 # Temporery use talk end command from the other client to end the read and exit so it does not run in the background 
+            dataMsg = pickle.loads(dataClient)
+            print(' Thread Recv')
 
-            if dataMsg.msgBody == 'talk end':
+            print(str(dataMsg.msgBody) + '\n')
+			 # Temporery use talk end command from the other client to end the read and exit so it does not run in the background
+
+            if dataMsg.msgBody == 'end talk':
+                print('Exit Thread')
                 break
 
         # Handle normal data type  data
         except:
-            appWindow.setTextArea('TextAreaScroll', str(data.decode()) + '\n')
+            #appWindow.setTextArea('TextAreaScroll', str(data.decode()) + '\n')
+            print('except')
+            #print(str(dataClient.decode()) + '\n')
+            break
 
 
 
 
 
 
-socketServOne = socket.socket()
-socketServOne.connect(('localhost', 6565))
+print(" CLient 1 ")
+var = MessageObject("", -1, "", -1) # MsgType, senderId, msgBody, targetId
 
-# Send an object to the server to connect Inculde the message HELLO and sender id so
-# the client can be added to connected clients list
-var.MsgType = "HELLO"
+clientSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# serverSocket.setblocking(False)
+clientSocket.connect(('localhost', 6265))
+
+#msg = clientSocket.recv(4096)
+# Send in the id
+#clientSocket.send(bytes(111,'utf-8'))
+var.msgType = 'HELLO'
 var.senderId = 111
-# Pickle data so it can be serialized
-dataStr = pickle.dumps(var)
+#dataStr = pickle.dumps(var)
 # Send data to the server
-socketServOne.send(dataStr)
+#socketServOne.send(dataStr)
+dataObject = pickle.dumps(var)
+# Send data to the server
+clientSocket.send(dataObject)
+#serverConnectionMsg = clientSocket.recv(4096)
+#print(serverConnectionMsg)
 
-# Start the client message receiver thread
 threading.Thread(target=msgRecv).start()
+msgTargetId = -1
+while True:
+    msgInput = input("Client One Msg : \n")
+    if msgInput.split()[0] == 'chat':
+        var.senderId = 111
+        var.targetId = msgInput.split()[1]
+        msgTargetId  = msgInput.split()[1]
+        var.msgType = 'CHATSET'
+        var.msgBody = msgInput
+        dataObject = pickle.dumps(var)
+        # Send data to the server
+        clientSocket.send(dataObject)
+    elif msgInput != 'end client':
+        print('---------')
+        var.senderId = 111
+        var.msgType = 'MSG'
+        var.msgBody = msgInput
+        var.targetId = msgTargetId
+        #clientSocket.send(bytes(msgInput,'utf-8'))
+        dataObject = pickle.dumps(var)
+        # Send data to the server
+        clientSocket.send(dataObject)
 
+        # check if not object as server send plain msg on exit
+        #msgObject = clientSocket.recv(4096)
+        #msgObjectDecoded = pickle.loads(msgObject)
 
-# start the GUI
-guiBuilder()
-appWindow.go()
-# Exit and end thread
-socketServOne.close()
-os._exit(0)
+        #decodeMsg = msg.decode('utf-8')
+        #print(msgObjectDecoded.msgBody)
 
+        #clientSocket.send(bytes(msg,"utf-8"))
+        #print(msg.decode("utf-8"))
 
+    else:
+        msgInput = 'end server'
+        clientSocket.send(bytes(msgInput,'utf-8'))
+        break
+clientSocket.close()

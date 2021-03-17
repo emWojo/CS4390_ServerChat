@@ -1,180 +1,142 @@
-import pickle
 import socket
 import select
+import pickle
 import queue
+from MessageObject import MessageObject
 
-from CustomExceptions import ClientIsBusy, ClientIsNotOnline, ClinetIsAlreadyConnected
+print("Server Runing")
 
-# This method is used to check if a connection exists between the pairs
-def checkConnectionTarget(target):
-    if len(connectedPairs) == 0:
-        return False
-    for pair in connectedPairs:
-        if pair[1] == target:
-            return True  # if true then it is busy
-    return False  # then it free
+serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+#serverSocket.set_reuse_addr()
+serverSocket.setblocking(False)
 
-# This method is used to check if a connection exists between the pairs and return the pair index if so
-def isClientBusy(target):
-    if len(connectedPairs) == 0:
-        return False
-    for eachPair in connectedPairs:
-        if eachPair[0] == target:
-            return eachPair[1]
+serverSocket.bind(('localhost', 6265))
+print(serverSocket)
+# Make this a  server
 
+serverSocket.listen(4)
 
-
-# Server socket setup
-socketServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Set the server socket to be a nonblocking socket
-socketServer.setblocking(False)
-socketServer.bind(('localhost', 6565))
-# The number of clients that will be allowed to connect
-socketServer.listen(10)
-# Inform the user the server is running
-print("Server is Running")
-
-# List
-# Currently Connected
-readInput = [socketServer]
-writeOutput = []
-messageOutputQueue = {}
-
-# The list and variables are initialized with dummy elements to server as sentinel value
-# This list will hold the id of all the currently connected clients
-connectedClientsId = [0]
-connectedClientsTarget = -1
-connectedClientsCurrent = -1
-# This list of pairs will be used to check which clients are busy talking with each other
-connectedPairs = [(0, 0)]
-# The sever will keep running until it is manually stopped or crashes
+listOfClientSocketOnline = []
+listOfClientsOnlineId = []
+connectedPair = []
+potential_readers = [serverSocket]
+potential_writes = []
+potential_errors = []
+ClientMessageQueue = {}
 while True:
-
-
-    read, write, error = select.select(readInput, writeOutput, readInput)
-    # Handle reading socket from client
-    for socketType in read:
-        if socketType is socketServer:
-            connection, address = socketType.accept()
-            # Connection received
-            print("Connection from " + str(address) + "address")
-            # Set the connection itself to be non-blocking
-            connection.setblocking(False)
-
-            # Add the conection to the to read from list
-            readInput.append(connection)
-
-            # Buffer the messages
-            messageOutputQueue[connection] = queue.Queue()
-        else:
-            # Recive data from the the clients
-            data = socketType.recv(2048)
-            # Unpikle data to extra object variable. The server should still be able to handle reciving other types,
-            # some modifcation could be applied in the code block
-            dataObject = pickle.loads(data)
-
-            # Check the message type
-            # This should be a temporery place holder until we add protocols
-            # Message type "HELLO" will be sent by the client when it first run
-            if dataObject.MsgType == "HELLO":
-                # Add the client to online client list connectedClientsId
-                connectedClientsId.append(int(dataObject.senderId))
-                print("HELLO")
-                print(int(dataObject.senderId))
-
-            # Attempt to Establish a connection with the target client
-            # This should be a temporery place holder until we add protocols
-            # Message type "CHAT_REQUEST" will be sent by the client when they want to chat with the target client
-            # chat [target_id]
-            elif dataObject.MsgType == "CHAT_REQUEST" and dataObject.msgBody.split()[0].lower() == "chat":
-
-                try:
-                    # Check if the requested client is online
-                    # by checking connectedClientsId list
-                    if (int(dataObject.targetId) in connectedClientsId):
-                        try:
-                            # check if already connected
-                            if checkConnectionTarget(connectedClientsId.index(int(dataObject.targetId))) == False:
-
-                                # Find the position of the clients in connectedClientsId
-                                connectedClientsTarget = connectedClientsId.index(int(dataObject.targetId))
-                                connectedClientsCurrent = connectedClientsId.index(int(dataObject.senderId))
-
-                                # Use the connectedClientsId postion to add a new connection to the list
-                                connectedPairs.append(tuple((connectedClientsCurrent, connectedClientsTarget)))
-                                connectedPairs.append(tuple((connectedClientsTarget, connectedClientsCurrent)))
-                                # Inform both clients that they are connected
-                                # This should be a temporery place holder until we add protocols
-                                connect_msg = "Connected to client " + str(dataObject.targetId)
-                                connect_msgByte = bytes(connect_msg, 'utf-8')
-                                readInput[connectedClientsId.index(int(dataObject.senderId))].send(connect_msgByte)
-                                connect_msg = "Connected to client " + str(dataObject.senderId)
-                                connect_msgByte = bytes(connect_msg, 'utf-8')
-                                readInput[connectedClientsId.index(int(dataObject.targetId))].send(connect_msgByte)
-                            else:
-                                # If the client is already in a pair with another client , then reject the connection
-                                # and trow ClientIsBusy exception
-                                raise ClientIsBusy
-                        except ClientIsBusy:
-                            # This should be a temporery place holder until we add protocols
-                            busyMsg = "Client   " + str(dataObject.targetId) + " is busy"
-                            busyMsgByte = bytes(busyMsg, 'utf-8')
-                            readInput[connectedClientsId.index(int(dataObject.senderId))].send(busyMsgByte)
-                    else:
-                        # If the client is not online , then reject the connection
-                        # and trow ClientIsNotOnline exception
-                        raise ClientIsNotOnline
-                except ClientIsNotOnline:
-                    # This should be a temporery place holder until we add protocols
-                    busyMsg = "Client   " + str(dataObject.targetId) + " is not online"
-                    busyMsgByte = bytes(busyMsg, 'utf-8')
-                    readInput[connectedClientsId.index(int(dataObject.senderId))].send(busyMsgByte)
+        #print("Loop Server")
 
 
 
+        #  Select 
+        select_ready_to_read , select_ready_to_write, select_error = select.select(potential_readers,potential_writes,potential_errors)
+        for socketTypesRead in select_ready_to_read:
+            if socketTypesRead is serverSocket:
+                # Accepts Clients Chat Phase
+                connectionSocket,connectionAddress = serverSocket.accept()
+                print(connectionSocket)
+                print(connectionAddress)
+                # Prevent connection from blocking
+                connectionSocket.setblocking(False)
+                # Connection Will each have a queue
+                potential_readers.append(connectionSocket)
 
-            # Process a chat message
+                # Save the client id to list
+                #listOfClientsOnlineId.append(clientId)
+                listOfClientSocketOnline.append(connectionSocket)
+                ClientMessageQueue[connectionSocket] = queue.Queue()
+
+
             else:
+                msgObject = socketTypesRead.recv(4096)
+                msgObjectDecoded = pickle.loads(msgObject)
 
-                if data:
-                    messageOutputQueue[socketType].put(data)
-                    if socketType not in writeOutput:
-                        writeOutput.append(socketType)
+                print(msgObjectDecoded)
+                #decodeMsg = msgObject.decode('utf-8')
+                # Add to connected client list
+                if msgObjectDecoded.msgType == 'HELLO' :
+                   print("HELLO MsgType")
+                   #print(msgObjectDecoded.msgBody)
+                   #print(msgObjectDecoded.senderId)
+                   #socketTypesRead.send(bytes("Connected to server and added client Id",'utf-8'))
+                   listOfClientsOnlineId.append(msgObjectDecoded.senderId)
+                   print(listOfClientsOnlineId)
+                   continue
+                if msgObjectDecoded.msgType == 'CHATSET' :
+                   print("CHATSET MsgType")
+                   print("Connect to")
+                   print(msgObjectDecoded.targetId)
+                   print(listOfClientsOnlineId)
+                   # Assume that target is already online
+                   # We can add a check if needed
+                   # Can Check also if already connected
+                   connectedPair.append(tuple((int(msgObjectDecoded.targetId), msgObjectDecoded.senderId)))
+                   continue
+                if msgObjectDecoded.msgBody == 'end talk':
+                    print(msgObject)
+                    #close the socket of the ccurrent connection
+                    #close the other client socket
+                    #break
+                    # end client threads
+                    socketTypesRead.send(bytes("end talk",'utf-8'))
+
+                if msgObjectDecoded.msgBody == 'end server':
+                    print(msgObject)
+                    print(listOfClientSocketOnline)
+                    #close all socket of the ccurrent connection
+                    for conections in listOfClientSocketOnline:
+                         # Inform the clients of the closure
+                         conections.close()
+                    # end all clients threads
+                    # ClientMessageQueue[connectionSocket]close ?
+                    serverSocket.close()
+                    exit(0)
+                    #break
+                # Valid
+                print("msgObject")
+                #print(str(msgObject) )
+
+                # behave like a message
+                if msgObject: # might be none
+                    ClientMessageQueue[socketTypesRead].put(msgObject)
+                    # Valid
+                    if socketTypesRead not in potential_writes:
+                        potential_writes.append(socketTypesRead)
+                # none msgObject
                 else:
-                    if socketType in writeOutput:
-                        writeOutput.remove(socketType)
-                    readInput.remove(socketType)
-                    socketType.close()
-                    del messageOutputQueue[socketType]
+                    if socketTypesRead  in potential_writes:
+                        potential_writes.remove(socketTypesRead)
 
-    # Handle writing socket to client
-    for socketType in write:
-        try:
-            msg = messageOutputQueue[socketType].get_nowait()
-        except queue.Empty:
-            writeOutput.remove(socketType)
-        else:
-	# Direct the message to specfic clients
-
+                    potential_readers.remove(socketTypesRead)
+                    socketTypesRead.close()
+                    del ClientMessageQueue[socketTypesRead]
+        for socketTypesWrite in select_ready_to_write:
             try:
-                # Before sending any messages the server will check if the message pair been intilized and the socket type
-                # matched
-                if (readInput[connectedClientsCurrent] == socketType) and (connectedClientsTarget != -1) :
+                msgOn = ClientMessageQueue[socketTypesWrite].get_nowait()
+            except queue.Empty:
+                potential_writes.remove(socketTypesWrite)
 
-                    readInput[connectedClientsId.index(int(dataObject.targetId))].send(msg)
-                elif connectedClientsCurrent != -1 :
-                    # Find if the sender and  target are a valid pair
-                    if isClientBusy(connectedClientsId.index(int(dataObject.senderId))) != None:
-                        readInput[isClientBusy(connectedClientsId.index(int(dataObject.senderId)))].send(msg)
+            else:
+                print(listOfClientsOnlineId)
+                print(int(msgObjectDecoded.targetId))
+                print(connectedPair)
+                try:
+                    print(int(msgObjectDecoded.targetId))
+                    print(int(msgObjectDecoded.senderId))
+                    print(listOfClientsOnlineId)
+                    print('=================')
+                    print(listOfClientsOnlineId.index(int(msgObjectDecoded.targetId)))
+                    #potential_readers[int(msgObjectDecoded.targetId)].send(msgOn)
+                    potential_readers[1+(listOfClientsOnlineId.index(int(msgObjectDecoded.targetId)))].send(msgOn)
 
-                else:
-                    print("ValueError")
-                    raise ValueError
+                    print("poti_reader")
+                    #print(listOfClientsOnlineId.index(int(msgObjectDecoded.senderId)))
+                        #potential_readers[1]
+
+                except Exception as e:
+                    print("error")
+                    print(e)
 
 
-			# Temporary error message for unexpected input
-            except  ValueError:
-                busyMsg = 'TEMP msg - Switched message to invalid client during chat ? Make sure target client is connected ?'
-                busyMsgByte = bytes(busyMsg, 'utf-8')
-                readInput[connectedClientsId.index(int(dataObject.senderId))].send(busyMsgByte)
-#socketServer.close() will close after the server is correctly exists
+
+
