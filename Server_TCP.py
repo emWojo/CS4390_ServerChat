@@ -1,5 +1,6 @@
 import socket
 import select
+import threading
 import pickle
 import queue
 from MessageObject import MessageObject
@@ -7,13 +8,52 @@ from MessageObject import MessageObject
 print("Server Runing")
 
 serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+udpSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 #serverSocket.set_reuse_addr()
 serverSocket.setblocking(False)
 
-serverSocket.bind(('localhost', 6265))
+try:
+    serverSocket.bind(('localhost', 6265))
+except socket.error as e:
+    print(str(e))
+try:
+    udpSocket.bind(('localhost', 6265))
+except socket.error as e:
+    print(str(e))
 print(serverSocket)
 # Make this a  server
 
+# UDP
+clients = {111:100, 222:200, 333:300} #temp
+addrToId = {}
+def udp_thread():
+    while True:
+        resp = ""
+        data, addr = udpSocket.recvfrom(2048)
+        print(data, addr)
+        data = data.decode('utf-8').split()
+        if data[0] == "HELLO":
+            if int(data[1]) in clients:
+                addrToId[addr] = int(data[1])
+                resp = "CHALLENGE "+str(123)
+                print("challenge")
+            else:
+                del addrToId[addr]
+                print("fail challenge")
+        elif data[0] == "RESPONSE":
+            print(clients[addrToId[addr]])
+            if clients[addrToId[addr]] == int(data[1]):
+                resp = "AUTH_SUCCESS"
+                print("succ")
+            else:
+                del addrToId[addr]
+                resp = "AUTH_FAIL"
+                print("fail")
+        udpSocket.sendto(str.encode(resp),addr)
+    udpSocket.close()
+threading.Thread(target=udp_thread).start()
+
+# TCP
 serverSocket.listen(4)
 
 listOfClientSocketOnline = []
@@ -25,9 +65,6 @@ potential_errors = []
 ClientMessageQueue = {}
 while True:
         #print("Loop Server")
-
-
-
         #  Select 
         select_ready_to_read , select_ready_to_write, select_error = select.select(potential_readers,potential_writes,potential_errors)
         for socketTypesRead in select_ready_to_read:
@@ -45,8 +82,6 @@ while True:
                 #listOfClientsOnlineId.append(clientId)
                 listOfClientSocketOnline.append(connectionSocket)
                 ClientMessageQueue[connectionSocket] = queue.Queue()
-
-
             else:
                 msgObject = socketTypesRead.recv(4096)
                 msgObjectDecoded = pickle.loads(msgObject)
