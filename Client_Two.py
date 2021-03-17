@@ -89,9 +89,10 @@ while True:
                 reply = udpSocket.recv(1024).decode('utf-8').split()
                 print(reply)
         except socket.timeout:
+            # Assume Packet lost try again
             reply = None
             print("Time Out")
-            udpSocket.close()
+            #udpSocket.close()
             break
     else:
         # CHAT PHASE
