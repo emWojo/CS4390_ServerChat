@@ -36,18 +36,15 @@ def udp_thread():
             if int(data[1]) in clients:
                 addrToId[addr] = int(data[1])
                 resp = "CHALLENGE "+str(123)
-                print("challenge")
             else:
+                # failed challenge
                 del addrToId[addr]
-                print("fail challenge")
         elif data[0] == "RESPONSE":
             if clients[addrToId[addr]] == int(data[1]):
                 resp = "AUTH_SUCCESS"
-                print("succ")
             else:
                 del addrToId[addr]
                 resp = "AUTH_FAIL"
-                print("fail")
         udpSocket.sendto(str.encode(resp),addr)
     udpSocket.close()
 threading.Thread(target=udp_thread).start()

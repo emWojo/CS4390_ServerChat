@@ -68,10 +68,8 @@ while True:
         try:
             if reply == None:
                 udpSocket.send(str.encode("HELLO "+str(var.senderId)))
-                print("Hello")
             elif reply != [] and reply[0] == "CHALLENGE":
                 udpSocket.send(str.encode("RESPONSE "+str(senderKey)))
-                print("Response")
             elif reply != [] and reply[0] == "AUTH_FAIL":
                 reply = None
                 udpSocket.close()
@@ -88,6 +86,7 @@ while True:
             if udpConnect:
                 # Time out period
                 udpSocket.settimeout(5)
+                # Retrieve Data
                 reply = udpSocket.recv(1024).decode('utf-8').split()
                 print(reply)
         except socket.timeout:
