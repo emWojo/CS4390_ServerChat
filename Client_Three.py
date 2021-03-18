@@ -35,27 +35,20 @@ print(" CLient 3 ")
 var = MessageObject("", -1, "", -1) # MsgType, senderId, msgBody, targetId
 
 clientSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-# serverSocket.setblocking(False)
 clientSocket.connect(('localhost', 6265))
 
-#msg = clientSocket.recv(4096)
 # Send in the id
-#clientSocket.send(bytes(333,'utf-8'))
+
 var.msgType = 'HELLO'
 var.senderId = 333
-#dataStr = pickle.dumps(var)
-# Send data to the server
-#socketServOne.send(dataStr)
 dataObject = pickle.dumps(var)
 # Send data to the server
 clientSocket.send(dataObject)
-#serverConnectionMsg = clientSocket.recv(4096)
-#print(serverConnectionMsg)
 
 threading.Thread(target=msgRecv).start()
 msgTargetId = -1
 while True:
-    msgInput = input("Client One Msg : \n")
+    msgInput = input("Client Three Msg : \n")
     if msgInput.split()[0] == 'chat':
         var.senderId = 333
         var.targetId = msgInput.split()[1]
@@ -73,20 +66,10 @@ while True:
         var.msgBody = msgInput
         var.targetId = msgTargetId
 
-        #clientSocket.send(bytes(msgInput,'utf-8'))
         dataObject = pickle.dumps(var)
         # Send data to the server
         clientSocket.send(dataObject)
 
-        # check if not object as server send plain msg on exit
-        #msgObject = clientSocket.recv(4096)
-        #msgObjectDecoded = pickle.loads(msgObject)
-
-        #decodeMsg = msg.decode('utf-8')
-        #print(msgObjectDecoded.msgBody)
-
-        #clientSocket.send(bytes(msg,"utf-8"))
-        #print(msg.decode("utf-8"))
 
     else:
         msgInput = 'end server'

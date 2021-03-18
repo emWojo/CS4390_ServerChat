@@ -60,7 +60,6 @@ potential_writes = []
 potential_errors = []
 ClientMessageQueue = {}
 while True:
-        #print("Loop Server")
         #  Select 
         select_ready_to_read , select_ready_to_write, select_error = select.select(potential_readers,potential_writes,potential_errors)
         for socketTypesRead in select_ready_to_read:
@@ -74,8 +73,6 @@ while True:
                 # Connection Will each have a queue
                 potential_readers.append(connectionSocket)
 
-                # Save the client id to list
-                #listOfClientsOnlineId.append(clientId)
                 listOfClientSocketOnline.append(connectionSocket)
                 ClientMessageQueue[connectionSocket] = queue.Queue()
             else:
@@ -87,9 +84,8 @@ while True:
                 # Add to connected client list
                 if msgObjectDecoded.msgType == 'HELLO' :
                    print("HELLO MsgType")
-                   #print(msgObjectDecoded.msgBody)
-                   #print(msgObjectDecoded.senderId)
-                   #socketTypesRead.send(bytes("Connected to server and added client Id",'utf-8'))
+                   # Save the client id to list
+
                    listOfClientsOnlineId.append(msgObjectDecoded.senderId)
                    print(listOfClientsOnlineId)
                    continue
@@ -124,8 +120,6 @@ while True:
                     exit(0)
                     #break
                 # Valid
-                print("msgObject")
-                #print(str(msgObject) )
 
                 # behave like a message
                 if msgObject: # might be none
@@ -157,15 +151,13 @@ while True:
                     print(listOfClientsOnlineId)
                     print('=================')
                     print(listOfClientsOnlineId.index(int(msgObjectDecoded.targetId)))
-                    #potential_readers[int(msgObjectDecoded.targetId)].send(msgOn)
                     potential_readers[1+(listOfClientsOnlineId.index(int(msgObjectDecoded.targetId)))].send(msgOn)
 
-                    print("poti_reader")
-                    #print(listOfClientsOnlineId.index(int(msgObjectDecoded.senderId)))
-                        #potential_readers[1]
+                    print("potential_readers sent")
+
 
                 except Exception as e:
-                    print("error")
+                    print("Exception e was raised")
                     print(e)
 
 

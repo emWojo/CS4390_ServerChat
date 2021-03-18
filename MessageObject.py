@@ -1,7 +1,7 @@
 class MessageObject:
 
-    def __init__(self, msgType, senderId, msgBody=None, targetId=None):
-        self.msgType = msgType
+    def __init__(self, MsgType, senderId, msgBody=None, targetId=None):
+        self.MsgType = MsgType
         self.senderId = senderId
         if  msgBody is None:
             self.msgBody = []
