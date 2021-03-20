@@ -50,19 +50,19 @@ def CONNECTED (socket, message):
 def CHAT_STARTED (socket, sessionID, clientID_B):
     #notify clientA that chat session with clientB has started
     #assign sessionID to the session
-
+    #TODO
     return
 
 def UNREACHABLE (socket, clientID_B):
     #notify clientA clientB is not available for chat
-
+    #TODO
     return
 
 def END_NOTIF (socket, sessionID):
     #notify clients in the session that the session has been terminated
-
+    #TODO
     return
 
 def HISTORY_RES (socket, clientID, message):
-    
+    #TODO
     return 0

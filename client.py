@@ -38,19 +38,19 @@ class clientAPI:
 
     def CHAT_REQUEST (self, clientID_B):
         #request for chat session with clientB
-        
+        #TODO
         return
 
     def END_REQUEST (self, sessionID):
         #request to terminate chat session
-
+        #TODO
         return
 
     def CHAT (self, sessionID, message):
-
+        #TODO
         return
 
     def HISTORY_REQ (self, clientID_B):
-        
+        #TODO
         return
         

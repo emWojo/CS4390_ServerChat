@@ -39,7 +39,6 @@ if DEUBUG_MODE:
     print(tcpSocket)
 
 # UDP
-clientAddtoID = {}
 
 clients = {
  111: {'password': 100, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None},
@@ -84,8 +83,6 @@ while True:
     # lists that will wait until they are ready for reading incoming sockets from client, writing to clients sockets,
     # and errors are received and need to be checked. The select function will provide a multiplexer like behavior to be
     # able send data between clients
-
-    # Can add the UDP socket to the select ?
 
     # select_ready_to_read, select_ready_to_write, select_error are return result of the select each will contain
     # sockets that are readable, writable and containing errors respectively
@@ -198,8 +195,19 @@ while True:
                     # Assume that target is already online
                     # We can add a check if needed here to see if the client is busy ( due to being in a pair already)
                     # Can Check also if already connected
-                    #isClientOnline = int(msgObjectDecoded.targetId) in listOfClientsOnlineId
-                    connectedPair.append(tuple((int(msgObjectDecoded.targetId), msgObjectDecoded.senderId)))
+                    isClientOnline = int(msgObjectDecoded.targetId) in listOfClientsOnlineId
+                    if (isClientOnline):
+                        targetClientIdPair = [tupleElem for tupleElem in connectedPair 
+                        if tupleElem[0] == int(msgObjectDecoded.targetId)  or tupleElem[1] == int(msgObjectDecoded.targetId)  ]
+
+                        if not targetClientIdPair:
+                            connectedPair.append(tuple((int(msgObjectDecoded.targetId), msgObjectDecoded.senderId)))
+                        else:
+                            #TODO: Send a message about client is online but a busy
+                            pass 
+                    else:
+                        #TODO: send a message about the client being offline 
+                        pass
                     # continue to avoid sending back
                     continue
                 # Temp for testing - can be used to end threads if this used later
@@ -280,13 +288,24 @@ while True:
                     # make it so only a single chat command start the client chat phase?
                     # add the idea of connected pairs to check for error ?
                     #
-                    targetClient = listOfClientsOnlineId.index(int(msgObjectDecoded.targetId))
-                    msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
-                    potential_readers[msgTargetIndex].send(msgOn)
-                    # Temp - check if the message passed
-                    print("potential_readers sent")
+                    try:
+                        idTarget = [tupleElem for tupleElme in connectedPair
+                        if tupleElem[0]== msgObjectDecoded.senderId or tupleElem[1] == msgObjectDecoded.senderId]
+
+                        if idTarget[0][1] == msgObjectDecoded.senderId :
+                            targetClient = listOfClientsOnlineId.index(int(idTarget[0][0]))
+                            msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
+                            potential_readers[msgTargetIndex].send(msgOn)
+                        else:
+                            targetClient = listOfClientsOnlineId.index(int(idTarget[0][1]))
+                            msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
+                            potential_readers[msgTargetIndex].send(msgOn)
+                        # Temp - check if the message passed
+                        print("potential_readers sent")
+                    except Exception as e:
+                        print("Exception: ", e, " was raised")
+
 
                 # If any error occurs during writing target
                 except Exception as e:
-                    print("Exception e was raised")
-                    print(e)
+                    print("Exception: ", e, " was raised")
