@@ -1,42 +1,56 @@
 import socket
+import bcrypt
+from secrets import token_urlsafe
+import hashlib
+import time
+import pickle
+from utils import messageDict
 
-UDP_address = '192.168.56.101'
-UDP_port = 6789
+UDP_address = 'localhost'
+UDP_port = 6265
 
-#UDP socket setup
-client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+class clientAPI:
+    def __init__(self, clientID):
+        #UDP socket setup
+        self.Uclient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.Uclient.connect((UDP_address, UDP_port))
+        self.Tclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.clientID = clientID
+        self.salt = None
 
+    #UDP connect
+    def HELLO (self):
+        #initiate client authentication with server
+        msg = messageDict(self.clientID, "HELLO")
+        self.Uclient.send(str.encode("HELLO " + str(self.clientID)))
 
-#UDP connect
-def HELLO (clientID_A):
-    #initiate client authentication with server
+    def RESPONSE (self, password, salt):
+        #response to challenge
+        saltyPass = bcrypt.hashpw(str(password).encode(), salt)
+        message = str.encode("RESPONSE ")
+        msg = messageDict(self.clientID, "RESPONSE", hashedPassword=saltyPass)
+        self.Uclient.send(message + saltyPass)
+        self.salt = salt
 
-    return
+    def CONNECT (self, encMessage):
+        totMessage = str(self.clientID).encode() + encMessage
+        self.Tclient.send(totMessage)
 
-def RESPONSE (clientID, res):
-    #response to challenge
+    def CHAT_REQUEST (self, clientID_B):
+        #request for chat session with clientB
+        
+        return
 
-    return
+    def END_REQUEST (self, sessionID):
+        #request to terminate chat session
 
-#TCP connect
-def CONNECT (randCookie):
-    
-    return
+        return
 
-def CHAT_REQUEST (clientID_B):
-    #request for chat session with clientB
+    def CHAT (self, sessionID, message):
 
-    return
+        return
 
-def END_REQUEST (sessionID):
-    #request to terminate chat session
-
-    return
-
-def CHAT (sessionID, message):
-
-    return
-
-def HISTORY_REQ (clientID_B):
-    
-    return
+    def HISTORY_REQ (self, clientID_B):
+        
+        return
+        
