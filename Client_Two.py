@@ -8,34 +8,30 @@ import bcrypt
 from secrets import token_urlsafe
 import hashlib
 from aesClass import aesCipher
+from utils import messageDict
 
 
 # The message receiving thread
-def msgRecv():
+def msgRecv(cipherMachine: aesCipher):
     while True:
         # The receiving TCP socket
-        dataClient = (clSock.Tclient.recv(4096))
+        pickedEncMessage = (clSock.Tclient.recv(4096))
+        pickedMessage = cipherMachine.decryptMessage(pickedEncMessage)
+        message = pickle.loads(pickedMessage)
+        if message['messageType'] == 'CHAT_STARTED':
+            global msgTargetId
+            msgTargetId = message['targetID']
         # Handle object data
-        try:
-            # Unpickle data - convert the object byte stream to object
-            dataMsg = pickle.loads(dataClient)
-            print('Thread Recv a msg')
-
-            print(str(dataMsg.msgBody) + '\n')
-            # Temporaryly will use 'talk end' command from the other client
-            # to end the read and exit so it does not run in the background
-            if dataMsg.msgBody == 'end talk':
-                print('Exit thread break')
-                break
-
-        # Handle normal data type  data - this will used to exit the client once the server shutdown
-        except:
-            print('Except break')
+                # sessionID assignment here
+        if len(pickedEncMessage) == 0:
             break
+        else:
+            pass
+        print('Message From ', message['senderID'], ': ', message['messageBody'])
 
 
 # Client Title
-print(" CLient 1 ")
+print(" CLient 2 ")
 
 
 var = MessageObject("", -1, "", -1)  # MsgType, senderId, msgBody, targetId
@@ -49,18 +45,14 @@ var = MessageObject("", -1, "", -1)  # MsgType, senderId, msgBody, targetId
 # The Client TCP section - Mixed for now
 # ====================================================
 # Send in the id of the client to the server
-var.msgType = 'HELLO'
-var.senderId = 222
 senderKey = str(200)
-# Pickle convert the object into a byte stream
-dataObject = pickle.dumps(var)
-
+senderId = str(222)
 msgTargetId = -1
 udpConnect = True
 reply = None
-success = False
+sessionID = 1000
 
-clSock = cl.clientAPI(var.senderId)
+clSock = cl.clientAPI(int(senderId),int(senderKey))
 while True:
     # Initiation Phase
     if udpConnect:
@@ -80,9 +72,13 @@ while True:
                 udpConnect = False
                 # Make TCP Connection
                 clSock.Tclient.connect(('localhost', 6265))
-                clSock.Tclient.send(dataObject)
+                message = messageDict(senderId, "CONNECT", cookie=randomCookie)
+                unencBytes = pickle.dumps(message)
+                encMessage = machine.encryptMessage(unencBytes)
+                clSock.CONNECT(encMessage)
+                print('Sent Connect message')
                 # Start the thread to receive message with non blocking type
-                threading.Thread(target=msgRecv).start()
+                threading.Thread(target=msgRecv, args=(machine,)).start()
             if udpConnect:
                 # Time out period
                 clSock.Uclient.settimeout(5)
@@ -94,10 +90,10 @@ while True:
                     ck_a = hashlib.pbkdf2_hmac('SHA256', senderKey.encode(), clSock.salt, 100000)
                     machine = aesCipher(ck_a)
                     reply = machine.decryptMessage(reply[2:])
+                    reply = reply.decode('utf-8')
                     reply = reply.split()
-                    success = True
+                    randomCookie = reply[2]
                 else:
-                    success = False
                     reply = reply.decode('utf-8').split() 
                 print(reply)
         except socket.timeout:
@@ -117,36 +113,29 @@ while True:
 
         if msgInput.split()[0] == 'chat':
             # The sender id of this client
-            var.senderId = 222
+            #var.senderId = 222
             # The target id of the client
-            var.targetId = msgInput.split()[1]
+            #var.targetId = msgInput.split()[1]
             # Set the target id based on the value following the chat keyword
             # chat [target_id_number]
-            msgTargetId = msgInput.split()[1]
             # Message type so the server set up the target client
-            var.msgType = 'CHATSET'
-            var.msgBody = msgInput
-            dataObject = pickle.dumps(var)
+            #var.msgType = 'CHATSET'
+            #var.msgBody = msgInput
+           # dataObject = pickle.dumps(var)
             # Send data to the server
-            clSock.Tclient.send(dataObject)
+            #clSock.Tclient.send(dataObject)
+            msgTargetId = int(msgInput.split()[1])
 
+            clSock.CHAT_REQUEST(int(msgInput.split()[1]))
         # Temp test msg - 'end client' could be used is temp place holder to end thread
         # but 'end talk' will be used to end the client
         elif msgInput != 'end client':
             print('---------')
-            # Set the object data fields
-            # client sender id
-            var.senderId = 222
-            # message type
-            var.msgType = 'MSG'
-            # message body that based on user input
-            var.msgBody = msgInput
-            # the target id which is based on using chat [target_id_number] command beforehand
-            var.targetId = msgTargetId
-            # Pickle convert the object into a byte stream
-            dataObject = pickle.dumps(var)
-            # Send data to the server
-            clSock.Tclient.send(dataObject)
+
+            message = messageDict(senderID=senderId, messageType="CHAT",messageBody=msgInput, targetID=msgTargetId, cookie=randomCookie)
+            unencBytes = pickle.dumps(message)
+            encMessage = machine.encryptMessage(unencBytes)
+            clSock.CHAT(sessionID,encMessage)
 
         # Send the command to end server
         else:

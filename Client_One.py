@@ -14,26 +14,14 @@ from utils import messageDict
 # The message receiving thread
 def msgRecv(cipherMachine: aesCipher):
     while True:
-        # The receiving TCP socket
         pickedEncMessage = (clSock.Tclient.recv(4096))
-        # Handle object data
-        try:
-            # Unpickle data - convert the object byte stream to object
-            pickedMessage = cipherMachine.decryptMessage(pickedEncMessage)
-            message = pickle.loads(pickedMessage)
-            print('Thread Recv a msg')
-            print(message)
-
-            # Temporaryly will use 'talk end' command from the other client
-            # to end the read and exit so it does not run in the background
-            if message['messageType'] == 'end talk':
-                print('Exit thread break')
-                break
-
-        # Handle normal data type  data - this will used to exit the client once the server shutdown
-        except:
-            print('Except break')
+        # Handle object data here
+        # sessionID assignment here for the client
+        if len(pickedEncMessage) == 0:
             break
+        else:
+            pass
+        print(pickedEncMessage)
 
 
 # Client Title
@@ -56,8 +44,10 @@ senderId = str(111)
 msgTargetId = -1
 udpConnect = True
 reply = None
+sessionID = 1000
 
-clSock = cl.clientAPI(int(senderId))
+# We are passing sender id  and sender key to the clientAPI 
+clSock = cl.clientAPI(int(senderId),int(senderKey))
 while True:
     # Initiation Phase
     if udpConnect:
@@ -118,37 +108,29 @@ while True:
 
         if msgInput.split()[0] == 'chat':
             # The sender id of this client
-            var.senderId = 111
+            #var.senderId = 111
             # The target id of the client
-            var.targetId = msgInput.split()[1]
+            #var.targetId = msgInput.split()[1]
             # Set the target id based on the value following the chat keyword
             # chat [target_id_number]
-            msgTargetId = msgInput.split()[1]
+            #msgTargetId = msgInput.split()[1]
             # Message type so the server set up the target client
-            var.msgType = 'CHATSET'
-            var.msgBody = msgInput
-            dataObject = pickle.dumps(var)
+            #var.msgType = 'CHATSET'
+            #var.msgBody = msgInput
+           # dataObject = pickle.dumps(var)
             # Send data to the server
-            clSock.Tclient.send(dataObject)
-
+            #clSock.Tclient.send(dataObject)
+            msgTargetId = int(msgInput.split()[1])
+            clSock.CHAT_REQUEST(int(msgInput.split()[1]))
         # Temp test msg - 'end client' could be used is temp place holder to end thread
         # but 'end talk' will be used to end the client
         elif msgInput != 'end client':
             print('---------')
-            # Set the object data fields
-            # client sender id
-            var.senderId = 111
-            # message type
-            var.msgType = 'MSG'
-            # message body that based on user input
-            var.msgBody = msgInput
-            # the target id which is based on using chat [target_id_number] command beforehand
-            var.targetId = msgTargetId
-            # Pickle convert the object into a byte stream
-            dataObject = pickle.dumps(var)
-            # Send data to the server
-            clSock.Tclient.send(dataObject)
 
+            message = messageDict(senderID=senderId, messageType="CHAT",messageBody=msgInput, targetID=msgTargetId, cookie=randomCookie)
+            unencBytes = pickle.dumps(message)
+            encMessage = machine.encryptMessage(unencBytes)
+            clSock.CHAT(sessionID,encMessage)
         # Send the command to end server
         else:
             msgInput = 'end server'

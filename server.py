@@ -1,5 +1,6 @@
 import socket
 import bcrypt
+import pickle
 from secrets import token_urlsafe
 import hashlib
 from aesClass import aesCipher
@@ -47,11 +48,14 @@ def CONNECTED (socket, message):
     #notify client it has been connected
     socket.send(message)
 
-def CHAT_STARTED (socket, sessionID, clientID_B):
+def CHAT_STARTED (socket, sessionID, clientID_B, machine):
     #notify clientA that chat session with clientB has started
     #assign sessionID to the session
-    #TODO
-    return
+    msgOn = 'Connected To Client B wiht the id [ '+ str(clientID_B) +' ]' 
+    message = messageDict(senderID='Server', targetID=(int(clientID_B)), sessionID=sessionID,messageType='CHAT_STARTED',messageBody=msgOn)
+    pickleMessage = pickle.dumps(message)
+    encMessage = machine.encryptMessage(pickleMessage) 
+    socket.send(encMessage)   
 
 def UNREACHABLE (socket, clientID_B):
     #notify clientA clientB is not available for chat

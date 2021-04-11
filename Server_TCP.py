@@ -167,41 +167,48 @@ while True:
 
                 if message['messageType'] == 'CONNECT':
                     if message['cookie'] == clients[id]['cookie']:
+                        connected_client_id = message['senderID']
                         message = messageDict(senderID='Server', messageType='CONNECTED')
                         pickMessage = pickle.dumps(message)
                         encMessage = machine.encryptMessage(pickMessage)
                         sv.CONNECTED(socketTypesRead, encMessage)
-
-                # Print test the decoded object
-                print(msgObjectDecoded)
-
-                # Temp for testing - Add to connected client list if the message object type is HELLO
-                if msgObjectDecoded.msgType == 'HELLO':
-                    print("HELLO MsgType")
-                    # Add the new client id to list
-                    listOfClientsOnlineId.append(msgObjectDecoded.senderId)
-                    # Check the client
-                    print(listOfClientsOnlineId)
-                    # continue to avoid sending back
+                        listOfClientsOnlineId.append(int(connected_client_id))
                     continue
-                # Temp for testing - set a chat target for the client if the message object type  is CHATSET
-                if msgObjectDecoded.msgType == 'CHATSET':
-                    print("CHATSET MsgType")
-                    print("Connect to")
+                # Print test the decoded object
+                #print(msgObjectDecoded)
 
+                
+                # Temp for testing - set a chat target for the client if the message object type  is CHATSET
+                if message['messageType']  == 'CHAT_REQUEST':
+                    print("CHAT_REQUEST MsgType")
                     # Check the client id and the online id list
-                    print(msgObjectDecoded.targetId)
-                    print(listOfClientsOnlineId)
                     # Assume that target is already online
                     # We can add a check if needed here to see if the client is busy ( due to being in a pair already)
                     # Can Check also if already connected
-                    isClientOnline = int(msgObjectDecoded.targetId) in listOfClientsOnlineId
+                    isClientOnline = int(message['targetID']) in listOfClientsOnlineId
                     if (isClientOnline):
                         targetClientIdPair = [tupleElem for tupleElem in connectedPair 
                         if tupleElem[0] == int(msgObjectDecoded.targetId)  or tupleElem[1] == int(msgObjectDecoded.targetId)  ]
 
                         if not targetClientIdPair:
-                            connectedPair.append(tuple((int(msgObjectDecoded.targetId), msgObjectDecoded.senderId)))
+
+                            connectedPair.append(tuple((int(message['targetID']), int(message['senderID']))))
+                            connectionSenderId = message['senderID']
+                            connectionTargetId = message['targetID']
+                            # Finder chat request sender socket 
+                            indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
+                            responeSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
+                            SessionID = None
+                            # CHAT_STARTED RES here 
+                            sv.CHAT_STARTED(responeSocket,SessionID,connectionTargetId,machine)
+                            indexOfSocketId = listOfClientsOnlineId.index(int(connectionTargetId))
+                            responeSocket = potential_readers[indexOfSocketId+2]
+                            clientKey = clients[connectionTargetId]['password']
+                            salt = clients[connectionTargetId]['salt']
+                            ck_a2 = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
+                            machine2 = aesCipher(ck_a2)
+                            sv.CHAT_STARTED(responeSocket,SessionID,connectionSenderId,machine2)
+
                         else:
                             #TODO: Send a message about client is online but a busy
                             pass 
@@ -211,7 +218,7 @@ while True:
                     # continue to avoid sending back
                     continue
                 # Temp for testing - can be used to end threads if this used later
-                if msgObjectDecoded.msgBody == 'end talk':
+                if message['messageType'] == 'end talk':
                     print(msgObject)
                     # can try
                         # close the socket of the ccurrent connection
@@ -221,7 +228,7 @@ while True:
                     socketTypesRead.send(bytes("end talk", 'utf-8'))
 
                 # Temp for testing - shut down the server and disconnect the clienst sockets
-                if msgObjectDecoded.msgBody == 'end server':
+                if message['messageType'] == 'end server':
                     print(msgObject)
                     print(listOfClientSocketOnline)
                     # close all socket of the ccurrent connection
@@ -239,9 +246,15 @@ while True:
                     exit(0)
 
                 # Receiving a message object that is valid
-                if msgObject:  # might be none, incorrect
+                if message['messageBody']:  # might be none 
                     # added to the queue of the socket
-                    ClientMessageQueue[socketTypesRead].put(msgObject)
+                    outGoingMessage = messageDict(senderID=int(message['senderID']), 
+                    targetID=int(message['targetID']),  
+                    messageType='CHAT',
+                    messageBody=message['messageBody'],
+                    sessionID=message['sessionID'],
+                    port=PORT)
+                    ClientMessageQueue[socketTypesRead].put(outGoingMessage)
                     # If the socket is not in potential_writes to send form later
                     if socketTypesRead not in potential_writes:
                         potential_writes.append(socketTypesRead)
@@ -269,15 +282,11 @@ while True:
 
             else:
                 # Temp - Print the message to test
-                print(listOfClientsOnlineId)
-                print(int(msgObjectDecoded.targetId))
-                print(connectedPair)
+
                 try:
-                    print(int(msgObjectDecoded.targetId))
-                    print(int(msgObjectDecoded.senderId))
+
                     print(listOfClientsOnlineId)
                     print('=================')
-                    print(listOfClientsOnlineId.index(int(msgObjectDecoded.targetId)))
 
                     # Send the message to the target client socket
 
@@ -285,27 +294,43 @@ while True:
                     # the message to it. Currently it depends on using client message object that contain the target id
                     # like the TCP message idea of having source and target address
                     #
-                    # make it so only a single chat command start the client chat phase?
-                    # add the idea of connected pairs to check for error ?
                     #
                     try:
-                        idTarget = [tupleElem for tupleElme in connectedPair
-                        if tupleElem[0]== msgObjectDecoded.senderId or tupleElem[1] == msgObjectDecoded.senderId]
+                        idTarget = [tupleElem for tupleElem in connectedPair if tupleElem[0]== int(msgOn['senderID']) or tupleElem[1] == int(msgOn['senderID'])]
 
-                        if idTarget[0][1] == msgObjectDecoded.senderId :
+
+                        if idTarget[0][1] == int(msgOn['senderID'])  :
                             targetClient = listOfClientsOnlineId.index(int(idTarget[0][0]))
                             msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
-                            potential_readers[msgTargetIndex].send(msgOn)
+                            targetID = int(msgOn['targetID'])
+                            clientKey = clients[targetID]['password']
+                            salt = clients[targetID]['salt']
+                            ck_a = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
+                            machine = aesCipher(ck_a)
+                            pickMessage = pickle.dumps(msgOn)
+                            encMessage = machine.encryptMessage(pickMessage)
+                            totMessage = encMessage
+                            potential_readers[msgTargetIndex].send(totMessage) 
+
                         else:
                             targetClient = listOfClientsOnlineId.index(int(idTarget[0][1]))
                             msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
-                            potential_readers[msgTargetIndex].send(msgOn)
+                            targetID = int(msgOn['targetID'])
+                            clientKey = clients[targetID]['password']
+                            salt = clients[targetID]['salt']
+                            ck_a = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
+                            machine = aesCipher(ck_a)
+                            pickMessage = pickle.dumps(msgOn)
+                            encMessage = machine.encryptMessage(pickMessage)
+                            totMessage = encMessage
+                            potential_readers[msgTargetIndex].send(totMessage)
+
                         # Temp - check if the message passed
                         print("potential_readers sent")
                     except Exception as e:
-                        print("Exception: ", e, " was raised")
+                        print("Exception: ", str(e), " was raised First")
 
 
                 # If any error occurs during writing target
                 except Exception as e:
-                    print("Exception: ", e, " was raised")
+                    print("Exception: ", str(e), " was raised Second")
