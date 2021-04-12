@@ -3,7 +3,7 @@ import select
 import threading
 import pickle
 import queue
-from utils import messageDict
+from utils import messageDict, sesessionIdGen
 from MessageObject import MessageObject
 import server as sv
 from aesClass import aesCipher
@@ -11,6 +11,20 @@ from aesClass import aesCipher
 import bcrypt
 from secrets import token_urlsafe
 import hashlib
+
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select as sqlSelect
+from sqlalchemy.ext.declarative import declarative_base
+Base = declarative_base()
+from db_define import *
+
+from datetime import datetime
+
+engine = create_engine('sqlite:///DBs/msg.sqlite', echo=False)
+connection = engine.connect()
+Session = sessionmaker(bind=engine)
+session = Session()
+#session.query(chat_sess).delete()
 
 HOST = 'localhost'
 PORT = 6265
@@ -39,18 +53,24 @@ if DEUBUG_MODE:
     print(tcpSocket)
 
 # UDP
+usrTableResult = session.query(db_usrs).all()
 
+clients = {}
+
+for usr in usrTableResult:
+    usrDict = {'password': usr.pwd, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None}
+    clients[int(usr.usr_id)] = usrDict
+
+print(clients)
+'''
 clients = {
  111: {'password': 100, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None},
  222: {'password': 200, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None}, 
  333: {'password': 300, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None}, 
  444: {'password': 400, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None}
  }
-# TODO: get rid of this since clientID will be in dict
+'''
 addrToId = {}
-
-
-
 
 # ====================================================
 # The server TCP section
@@ -95,7 +115,8 @@ while True:
         if socketTypesRead is udpSocket:
             resp = ""
             data, addr = udpSocket.recvfrom(2048)
-            print(data, addr)
+            if DEUBUG_MODE:
+                print(data, addr)
             data = data.decode('utf-8').split()
             message = ""
 
@@ -132,8 +153,9 @@ while True:
         if socketTypesRead is tcpSocket:
             #Preconnect Message Read
             connectionSocket, connectionAddress = tcpSocket.accept()
-            print(connectionSocket)
-            print(connectionAddress)
+            if DEUBUG_MODE:
+                print(connectionSocket)
+                print(connectionAddress)
             # Check if the connection cookie is valid 
             # Prevent connection from blocking
             connectionSocket.setblocking(False)
@@ -154,16 +176,18 @@ while True:
                 #msgObjectDecoded = pickle.loads(msgObject)
                 msgObjectDecoded = None
                 id_encBytes = socketTypesRead.recv(4096)
-                print(id_encBytes)
+                if DEUBUG_MODE:
+                    print(id_encBytes)
                 id = id_encBytes[:3]
                 id = int(id)
                 encBytes = id_encBytes[3:]
-                print(encBytes)
-                ck_a = hashlib.pbkdf2_hmac('SHA256', str(clients[int(id)]['password']).encode(), clients[int(id)]['salt'], 100000)
-                machine = aesCipher(ck_a)
+                if DEUBUG_MODE:
+                    print(encBytes)
+                machine = sv.createMachine(id, clients)
                 decryptedMessage = machine.decryptMessage(encBytes)
                 message = pickle.loads(decryptedMessage)
-                print(message)
+                if DEUBUG_MODE:
+                    print(message)
 
                 if message['messageType'] == 'CONNECT':
                     if message['cookie'] == clients[id]['cookie']:
@@ -180,10 +204,11 @@ while True:
                 
                 # Temp for testing - set a chat target for the client if the message object type  is CHATSET
                 if message['messageType']  == 'CHAT_REQUEST':
-                    print("CHAT_REQUEST MsgType")
+                    if DEUBUG_MODE:
+                        print("CHAT_REQUEST MsgType")
                     # Check the client id and the online id list
                     # Assume that target is already online
-                    # We can add a check if needed here to see if the client is busy ( due to being in a pair already)
+                    # We can add a check if needed here to see if the client is busy ( due to being in a pair already) 
                     # Can Check also if already connected
                     isClientOnline = int(message['targetID']) in listOfClientsOnlineId
                     if (isClientOnline):
@@ -198,39 +223,77 @@ while True:
                             # Finder chat request sender socket 
                             indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
                             responeSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
-                            SessionID = None
+                            #List existing sess ids
+                            listExistingSessionIDs = [r.sess_id for r in session.query(chat_sess.sess_id)]
+                            SessionID = sesessionIdGen(listExistingSessionIDs)
                             # CHAT_STARTED RES here 
                             sv.CHAT_STARTED(responeSocket,SessionID,connectionTargetId,machine)
                             indexOfSocketId = listOfClientsOnlineId.index(int(connectionTargetId))
                             responeSocket = potential_readers[indexOfSocketId+2]
-                            clientKey = clients[connectionTargetId]['password']
-                            salt = clients[connectionTargetId]['salt']
-                            ck_a2 = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
-                            machine2 = aesCipher(ck_a2)
+                            machine2 = sv.createMachine(connectionTargetId, clients)
                             sv.CHAT_STARTED(responeSocket,SessionID,connectionSenderId,machine2)
-
+                            # TODO: Add Session Info To DB
+                            sessEntry = chat_sess(sess_id = int(SessionID), usr_id1 = int(connectionSenderId), usr_id2 = int(connectionTargetId))
+                            session.add(sessEntry)
+                            session.commit()
                         else:
-                            #TODO: Send a message about client is online but a busy
-                            pass 
+                            # Send a message about client is online but a busy
+                            connectionSenderId = message['senderID']
+                            connectionTargetId = message['targetID']
+                            indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
+                            responeSocket = potential_readers[indexOfSocketId+2]
+                            machine = sv.createMachine(connectionSenderId, clients)
+                            sv.UNREACHABLE(responeSocket,connectionTargetId, machine)
+
+                            
                     else:
-                        #TODO: send a message about the client being offline 
-                        pass
+                        #send a message about the client being offline
+                        connectionSenderId = message['senderID']
+                        connectionTargetId = message['targetID']
+                        indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
+                        responeSocket = potential_readers[indexOfSocketId+2]
+                        machine = sv.createMachine(connectionSenderId, clients)
+                        sv.UNREACHABLE(responeSocket,connectionTargetId, machine)
                     # continue to avoid sending back
                     continue
                 # Temp for testing - can be used to end threads if this used later
-                if message['messageType'] == 'end talk':
-                    print(msgObject)
-                    # can try
-                        # close the socket of the ccurrent connection
-                        # close the other client socket
-                        # break
-                        # end client threads
-                    socketTypesRead.send(bytes("end talk", 'utf-8'))
+                if message['messageType'] == 'END_REQUEST':
+                    print(message)
+                    connectionSenderId = message['senderID']
+                    connectionTargetId = message['targetID']
+                    SessionID = 1000
+                    # Send disconnected Notifcation message 
+                    # The sender 
+                    indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
+                    responeSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
+                    machine = sv.createMachine(connectionSenderId, clients)
+                    sv.END_NOTIF(responeSocket, SessionID,machine)
+                    # The target
+                    indexOfSocketId = listOfClientsOnlineId.index(int(connectionTargetId))
+                    responeSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
+                    machine2 = sv.createMachine(connectionTargetId, clients)
+                    sv.END_NOTIF(responeSocket, SessionID,machine2)
+
+                    # SessionID from the sessionIDList ( If we make one )
+                    #TODO Remove session id 
+
+                    # Find the target pair from the  connectedPair list
+                    targetClientIdPair = [tupleElem for tupleElem in connectedPair if tupleElem[0] == int(connectionSenderId) or tupleElem[1] == int(connectionSenderId)]
+                    if DEUBUG_MODE:
+                        print("targ")
+                        print(targetClientIdPair)
+                        print("con")
+                        print(connectedPair)
+                    # Remove from the list
+                    if targetClientIdPair:
+                        connectedPair.remove(targetClientIdPair[0])                    
+                    continue
 
                 # Temp for testing - shut down the server and disconnect the clienst sockets
-                if message['messageType'] == 'end server':
-                    print(msgObject)
-                    print(listOfClientSocketOnline)
+                if message['messageType'] == 'End Server':
+                    print(message)
+                    if DEUBUG_MODE:
+                        print(listOfClientSocketOnline)
                     # close all socket of the ccurrent connection
                     for connectionsOnline in listOfClientSocketOnline:
                         # Inform the clients of the closure
@@ -255,6 +318,11 @@ while True:
                     sessionID=message['sessionID'],
                     port=PORT)
                     ClientMessageQueue[socketTypesRead].put(outGoingMessage)
+                    # TODO: Add message to DB
+                    msgEntry = msgs(sess_id=int(message['sessionID']), time=datetime.now(), sender_id=int(message['senderID']), msg_body=message['messageBody'] )
+                    session.add(msgEntry)
+                    session.commit()
+
                     # If the socket is not in potential_writes to send form later
                     if socketTypesRead not in potential_writes:
                         potential_writes.append(socketTypesRead)
@@ -285,8 +353,9 @@ while True:
 
                 try:
 
-                    print(listOfClientsOnlineId)
-                    print('=================')
+                    if DEUBUG_MODE:
+                        print(listOfClientsOnlineId)
+                        print('=================')
 
                     # Send the message to the target client socket
 
@@ -297,40 +366,25 @@ while True:
                     #
                     try:
                         idTarget = [tupleElem for tupleElem in connectedPair if tupleElem[0]== int(msgOn['senderID']) or tupleElem[1] == int(msgOn['senderID'])]
-
-
+                        print(connectedPair)
                         if idTarget[0][1] == int(msgOn['senderID'])  :
                             targetClient = listOfClientsOnlineId.index(int(idTarget[0][0]))
-                            msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
-                            targetID = int(msgOn['targetID'])
-                            clientKey = clients[targetID]['password']
-                            salt = clients[targetID]['salt']
-                            ck_a = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
-                            machine = aesCipher(ck_a)
-                            pickMessage = pickle.dumps(msgOn)
-                            encMessage = machine.encryptMessage(pickMessage)
-                            totMessage = encMessage
-                            potential_readers[msgTargetIndex].send(totMessage) 
-
                         else:
                             targetClient = listOfClientsOnlineId.index(int(idTarget[0][1]))
-                            msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
-                            targetID = int(msgOn['targetID'])
-                            clientKey = clients[targetID]['password']
-                            salt = clients[targetID]['salt']
-                            ck_a = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
-                            machine = aesCipher(ck_a)
-                            pickMessage = pickle.dumps(msgOn)
-                            encMessage = machine.encryptMessage(pickMessage)
-                            totMessage = encMessage
-                            potential_readers[msgTargetIndex].send(totMessage)
-
+                        msgTargetIndex = 2 + targetClient # + 2 to account for the UDP and TCP socket in the lsit 
+                        targetID = int(msgOn['targetID'])
+                        machine3 = sv.createMachine(targetID, clients)
+                        pickMessage = pickle.dumps(msgOn)
+                        encMessage = machine3.encryptMessage(pickMessage)
+                        totMessage = encMessage
+                        potential_readers[msgTargetIndex].send(totMessage) 
                         # Temp - check if the message passed
-                        print("potential_readers sent")
+                        if DEUBUG_MODE:
+                            print("potential_readers sent")
                     except Exception as e:
-                        print("Exception: ", str(e), " was raised First")
-
-
+                        if DEUBUG_MODE:
+                            print("Exception: ", str(e), " was raised First")
                 # If any error occurs during writing target
                 except Exception as e:
-                    print("Exception: ", str(e), " was raised Second")
+                    if DEUBUG_MODE:
+                        print("Exception: ", str(e), " was raised Second")

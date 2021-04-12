@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 engine = create_engine('sqlite:///DBs/msg.sqlite', echo=True)
 connection = engine.connect()
 
-#Define Table objects
+#Define DB Tables
 metadata = MetaData()
 db_usrs = Table(
    'db_usrs', metadata, 
@@ -31,6 +31,28 @@ msgs = Table(
 metadata.create_all(engine)
 print(metadata.tables.keys())
 
+#Input Users
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import insert, select
+from sqlalchemy.ext.declarative import declarative_base
+Base = declarative_base()
+from db_define import *
+Session = sessionmaker(bind=engine)
+session = Session()
+
+session.query(msgs).delete()
+session.query(chat_sess).delete()
+session.query(db_usrs).delete()
+session.commit()
+
+session.add_all([
+    db_usrs(usr_id = 111, name = "Ahmed", pwd = '100'),
+    db_usrs(usr_id = 222, name = "Emily", pwd = '200'),
+    db_usrs(usr_id = 333, name = "Joshua", pwd = '300'),
+    db_usrs(usr_id = 444, name = "Rutvij", pwd = '400'),
+])
+
+session.commit()
 ########################################
 # EXAMPLE INSERTS
 ########################################

@@ -48,10 +48,16 @@ class clientAPI:
         totMessage = str(self.clientID).encode() + encMessage
         self.Tclient.send(totMessage)
 
-    def END_REQUEST (self, sessionID):
+    def END_REQUEST (self, sessionID, targetID):
         #request to terminate chat session
-        #TODO
-        return
+        endNotifMessage = messageDict(self.clientID, sessionID=sessionID, targetID = targetID, messageType = "END_REQUEST")
+        ck_a = hashlib.pbkdf2_hmac('SHA256', str(self.clientKey).encode(), self.salt, 100000)
+        machine = aesCipher(ck_a)
+        unencBytes = pickle.dumps(endNotifMessage)
+        encMessage = machine.encryptMessage(unencBytes)
+        totMessage = str(self.clientID).encode() + encMessage
+        self.Tclient.send(totMessage)
+        
 
     def CHAT (self, sessionID, message):
         totMessage = str(self.clientID).encode() + message

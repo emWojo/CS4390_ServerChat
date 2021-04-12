@@ -18,3 +18,4 @@ class msgs(Base):
    time = Column(DateTime, primary_key = True)
    sender_id = Column(Integer, ForeignKey('db_usrs.usr_id'))
    msg_body = Column(String)
+                        

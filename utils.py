@@ -12,3 +12,13 @@ targetID=None, sessionID=None, cookie=None
     'hashedPassword': hashedPassword,
     'salt':salt
     }
+
+from uuid import uuid4
+
+def sesessionIdGen(listOfExistingSessionIDs):
+    while True:
+        i = uuid4().int
+        mask = '0b111111111111111111111111111111111111111111111111111111111111111'
+        i = i & int(mask, 2)
+        if i not in listOfExistingSessionIDs:
+            return i
