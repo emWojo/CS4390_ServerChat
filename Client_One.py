@@ -11,7 +11,7 @@ from aesClass import aesCipher
 from utils import messageDict
 from time import *
 
-# TODO: Add actiity timer
+# TODO: Add activity timer
 
 chat_timeout = 0
 lock = threading.Lock()
@@ -49,6 +49,13 @@ def msgRecv(cipherMachine: aesCipher):
         else:
             pass
         print('Message From ', message['senderID'], ': ', message['messageBody'])
+
+
+def keepAlive():
+
+    while True:
+        sleep(1)
+        clSock.KEEP_ALIVE()
 
 # Timeout method
 def chatTimeout():
@@ -89,7 +96,8 @@ var = MessageObject("", -1, "", -1)  # MsgType, senderId, msgBody, targetId
 senderKey = str(100)
 senderId = str(111)
 msgTargetId = -1
-udpConnect = True
+# 0-not logged on, 1-connect phase, 2-chat phase
+connectType = 1
 reply = None
 sessionID = 1000
 chat_timeout = 30
@@ -98,7 +106,13 @@ chat_timeout = 30
 clSock = cl.clientAPI(int(senderId),int(senderKey))
 while True:
     # Initiation Phase
-    if udpConnect:
+    if connectType == 0:
+        #TODO: Wait for log on message
+        ins = input()
+        if ins == "log on":
+            connectType = 1
+    # Connect Phase
+    elif connectType == 1:
         try:
             if reply == None:
                 clSock.HELLO()
@@ -112,7 +126,7 @@ while True:
                 clSock.Uclient.close()
                 break
             elif reply != [] and reply[0] == "AUTH_SUCCESS":
-                udpConnect = False
+                connectType = 2
                 # Make TCP Connection
                 clSock.Tclient.connect(('localhost', 6265))
                 message = messageDict(senderId, "CONNECT", cookie=randomCookie)
@@ -122,7 +136,8 @@ while True:
                 print('Sent Connect message')
                 # Start the thread to receive message with non blocking type
                 threading.Thread(target=msgRecv, args=(machine,)).start()
-            if udpConnect:
+                #threading.Thread(target=keepAlive).start()
+            if connectType == 1:
                 # Time out period
                 clSock.Uclient.settimeout(5)
                 # Retrieve Data
@@ -170,10 +185,8 @@ while True:
             #clSock.Tclient.send(dataObject)
             msgTargetId = int(msgInput.split()[1])
             clSock.CHAT_REQUEST(int(msgInput.split()[1]))
-
         # End Chat 
         elif msgInput == 'end chat':
-
             clSock.END_REQUEST(sessionID, msgTargetId)
             # End Timer 
             '''
@@ -181,6 +194,10 @@ while True:
             chat_timeout = 0
             lock.release()
             '''
+        #elif msgInput == "log off":
+            #TODO: Tear down TCP socket
+            #Tell server logging off
+            #break
         elif msgInput != 'end client':
             print('---------')
 

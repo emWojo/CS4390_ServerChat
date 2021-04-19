@@ -3,6 +3,7 @@ import bcrypt
 from secrets import token_urlsafe
 import hashlib
 import time
+import threading
 import pickle
 from utils import messageDict
 from aesClass import aesCipher
@@ -60,9 +61,22 @@ class clientAPI:
         
 
     def CHAT (self, sessionID, message):
+        #TODO: Move encryption process here
         totMessage = str(self.clientID).encode() + message
         self.Tclient.send(totMessage)
         
+    def KEEP_ALIVE(self):
+        kaMessage = messageDict(self.clientID, messageType = "KEEP_ALIVE")
+        ck_a = hashlib.pbkdf2_hmac('SHA256', str(self.clientKey).encode(), self.salt, 100000)
+        machine = aesCipher(ck_a)
+        unencBytes = pickle.dumps(kaMessage)
+        encMessage = machine.encryptMessage(unencBytes)
+        totMessage = str(self.clientID).encode() + encMessage
+        self.kaTclient.send(totMessage)
+
+    def LOG_OFF(self):
+        #TODO
+        return
 
     def HISTORY_REQ (self, clientID_B):
         #TODO

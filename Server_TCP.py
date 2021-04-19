@@ -387,4 +387,5 @@ while True:
                 # If any error occurs during writing target
                 except Exception as e:
                     if DEUBUG_MODE:
-                        print("Exception: ", str(e), " was raised Second")
+
+                                    print("Exception: ", str(e), " was raised Second")

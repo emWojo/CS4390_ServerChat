@@ -46,6 +46,12 @@ def msgRecv(cipherMachine: aesCipher):
             pass
         print('Message From ', message['senderID'], ': ', message['messageBody'])
 
+def keepAlive():
+
+    while True:
+        sleep(1)
+        clSock.KEEP_ALIVE()
+
 # Timeout method
 def chatTimeout():
     actualTimeout = False
@@ -117,6 +123,7 @@ while True:
                 print('Sent Connect message')
                 # Start the thread to receive message with non blocking type
                 threading.Thread(target=msgRecv, args=(machine,)).start()
+                #threading.Thread(target=keepAlive).start()
             if udpConnect:
                 # Time out period
                 clSock.Uclient.settimeout(5)

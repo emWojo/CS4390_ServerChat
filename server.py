@@ -65,7 +65,7 @@ def UNREACHABLE (socket, clientID_B,machine):
     encMessage = machine.encryptMessage(pickleMessage) 
     socket.send(encMessage)   
 
-def END_NOTIF (socket, sessionID,machine):
+def END_NOTIF (socket, sessionID, machine):
     #notify clients in the session that the session has been terminated
     msgOn = 'session [ '+ str(sessionID) +' ] has been terminted' 
     message = messageDict(senderID='Server', sessionID=sessionID ,messageType='END_NOTIF',messageBody=msgOn)
@@ -78,7 +78,6 @@ def HISTORY_RES (socket, clientID, message):
     return 0
 
 
-
 ##Helper Functions
 def createMachine(connectionSenderId, clients):
     clientKey = clients[connectionSenderId]['password']
@@ -86,4 +85,24 @@ def createMachine(connectionSenderId, clients):
     ck_a = hashlib.pbkdf2_hmac('SHA256', str(clientKey).encode(), salt, 100000)
     machine = aesCipher(ck_a)
     return machine 
+
+def disconnectMsg(message, clients, potential_readers, listOfClientsOnlineId):
+    connectionSenderId = message['senderID']
+    connectionTargetId = message['targetID']
+    SessionID = message['sessionID']
+    # Send disconnected Notifcation message 
+    # The sender 
+    indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
+    responseSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
+    machine = createMachine(connectionSenderId, clients)
+    END_NOTIF(responseSocket, SessionID, machine)
+    # The target
+    indexOfSocketId = listOfClientsOnlineId.index(int(connectionTargetId))
+    responseSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
+    machine2 = createMachine(connectionTargetId, clients)
+    END_NOTIF(responseSocket, SessionID, machine2)
+
+
+
+
                             
