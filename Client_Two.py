@@ -1,8 +1,9 @@
 import socket
-from MessageObject import MessageObject
 import pickle
 import threading
 import time
+import sys
+import readline
 import client as cl
 import bcrypt
 from secrets import token_urlsafe
@@ -43,8 +44,15 @@ def msgRecv(cipherMachine: aesCipher):
         if len(pickedEncMessage) == 0:
             break
         else:
-            pass
-        print('Message From ', message['senderID'], ': ', message['messageBody'])
+            msg = 'Message From ' + str(message['senderID']) + ': ' + (message['messageBody'] if message['messageBody'] is not None else 'None')
+            sys.stdout.write("\r" + '------------\n')
+            print(msg)
+            sys.stdout.flush()
+            # Get the current line buffer and reprint it, in case some input had started to be entered when the prompt was switched
+            print('------------')
+            print('Your msg: ', end='')
+            sys.stdout.write(readline.get_line_buffer())
+            sys.stdout.flush()
 
 def keepAlive():
 
@@ -77,7 +85,6 @@ def chatTimeout():
 print(" CLient 2 ")
 
 
-var = MessageObject("", -1, "", -1)  # MsgType, senderId, msgBody, targetId
 # Create a TCP socket
 #clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Create a UDP socket
@@ -150,7 +157,7 @@ while True:
     else:
         # CHAT PHASE
         # Ask user for input
-        msgInput = input("Client One Msg : \n")
+        msgInput = input("Your Msg : ")
 
         # If chat message start with the word chat , it indicate that the client is making a chat request to a target
         # client. Currently both clients need to target each other using the chat command
@@ -160,7 +167,7 @@ while True:
             # The sender id of this client
             #var.senderId = 222
             # The target id of the client
-            #var.targetId = msgInput.split()[1]
+            #var.targetId = msgInput.split()[1] 
             # Set the target id based on the value following the chat keyword
             # chat [target_id_number]
             # Message type so the server set up the target client

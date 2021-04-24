@@ -72,13 +72,23 @@ class clientAPI:
         unencBytes = pickle.dumps(kaMessage)
         encMessage = machine.encryptMessage(unencBytes)
         totMessage = str(self.clientID).encode() + encMessage
-        self.kaTclient.send(totMessage)
+        self.Tclient.send(totMessage)
 
     def LOG_OFF(self):
-        #TODO
-        return
+        chatReqMessage = messageDict(self.clientID, messageType="LOG_OFF")
+        ck_a = hashlib.pbkdf2_hmac('SHA256', str(self.clientKey).encode(), self.salt, 100000)
+        machine = aesCipher(ck_a)
+        unencBytes = pickle.dumps(chatReqMessage)
+        encMessage = machine.encryptMessage(unencBytes)
+        totMessage = str(self.clientID).encode() + encMessage
+        self.Tclient.send(totMessage)
 
     def HISTORY_REQ (self, clientID_B):
-        #TODO
-        return
+        chatReqMessage = messageDict(self.clientID, messageType="HISTORY_REQ", targetID=clientID_B)
+        ck_a = hashlib.pbkdf2_hmac('SHA256', str(self.clientKey).encode(), self.salt, 100000)
+        machine = aesCipher(ck_a)
+        unencBytes = pickle.dumps(chatReqMessage)
+        encMessage = machine.encryptMessage(unencBytes)
+        totMessage = str(self.clientID).encode() + encMessage
+        self.Tclient.send(totMessage)
         

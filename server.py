@@ -73,10 +73,11 @@ def END_NOTIF (socket, sessionID, machine):
     encMessage = machine.encryptMessage(pickleMessage) 
     socket.send(encMessage)   
 
-def HISTORY_RES (socket, clientID, message):
-    #TODO
-    return 0
-
+def HISTORY_RES (socket, history, machine):
+    message = messageDict(senderID='Server', messageType='HISTORY_RES', messageBody=history)
+    pickleMessage = pickle.dumps(message)
+    encMessage = machine.encryptMessage(pickleMessage) 
+    socket.send(encMessage)
 
 ##Helper Functions
 def createMachine(connectionSenderId, clients):

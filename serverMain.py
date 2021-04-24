@@ -27,7 +27,7 @@ DEBUG_MODE = False
 
 
 if __name__ == '__main__':
-    print("Server Runing")
+    print("Server Running")
     # Create the server TCP socket 
     tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcpSocket.setblocking(False)
@@ -260,6 +260,19 @@ if __name__ == '__main__':
                     if targetClientIdPair:
                         connectedPair.remove(targetClientIdPair[0])                    
                     continue
+
+                #TODO: History for chat history with certain user, can be done at any time
+                if message['messageType'] == 'HISTORY_REQ':
+                    chatHistory = session.query(msgs).join(chat_sess).filter(((chat_sess.usr_id1 == message['senderID']) & (chat_sess.usr_id2 == message['targetID'])) | ((chat_sess.usr_id1 == message['targetID']) & (chat_sess.usr_id2 == message['senderID']))).order_by(msgs.sess_id, msgs.time).all()
+                    machine = sv.createMachine(message['senderID'], clients)
+                    indexOfSocketId = listOfClientsOnlineId.index(int(message['senderID']))
+                    responseSocket = potential_readers[indexOfSocketId]
+                    sv.HISTORY_RES(responseSocket, chatHistory, machine)
+                
+                #TODO: Logoff at any time?
+                if message['messageType'] == 'LOG_OFF':
+                    # tear down everything
+                    pass
 
                 #Receive KEEP_ALIVE requests
                 if message['messageType'] == 'KEEP_ALIVE':

@@ -4,7 +4,6 @@ import threading
 import pickle
 import queue
 from utils import messageDict, sesessionIdGen
-from MessageObject import MessageObject
 import server as sv
 from aesClass import aesCipher
 
@@ -261,7 +260,7 @@ while True:
                     print(message)
                     connectionSenderId = message['senderID']
                     connectionTargetId = message['targetID']
-                    SessionID = 1000
+                    #SessionID = 1000
                     # Send disconnected Notifcation message 
                     # The sender 
                     indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
