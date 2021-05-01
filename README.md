@@ -15,7 +15,8 @@ Run “python db.py” to set up the database
 <li>Download the project archive file ‘project-code.zip’ and extract the project folder from it.
   </ul>
 </ul>
-## Run Commands 
+
+##Run Commands 
 
 ### Server
 To run the server-side portion of the application in the console
