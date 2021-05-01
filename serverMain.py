@@ -60,21 +60,25 @@ if __name__ == '__main__':
     ClientMessageQueue = {}
     
     # Bind the TCP socket
-    while(tcpNotBound):
-        try:
-            PORT = secrets.choice(PORTS)
-            tcpSocket.bind(('localhost', PORT))
-            tcpNotBound = False
-        except socket.error as e:
-            print(str(e))
+    try:
+        PORT = secrets.choice(PORTS)
+        tcpSocket.bind(('localhost', PORT))
+        tcpNotBound = False
+    except socket.error as e:
+        print(str(e))
+        print('Try again in a few minutes, exiting..')
+        utils.screenClear()
+        exit()
 
     # Bind the UDP socket
-    while(udpNotBound):
-        try:
-            udpSocket.bind(('localhost', PORT))
-            udpNotBound = False
-        except socket.error as e:
-            print(str(e))
+    try:
+        udpSocket.bind(('localhost', PORT))
+        udpNotBound = False
+    except socket.error as e:
+        print(str(e))
+        print('Try again in a few minutes, exiting..')
+        utils.screenClear()
+        exit()
 
     if DEBUG_MODE:
         print(tcpSocket, udpSocket)
@@ -88,9 +92,9 @@ if __name__ == '__main__':
     if DEBUG_MODE:
         print(clients)
 
-    # The TCP server will listen to up to 8 connection
+    # The TCP server will listen to up to 16 connection
     # This for the TCP  server socket
-    tcpSocket.listen(8)
+    tcpSocket.listen(16)
 
     while True:
         # Select function will have potential_readers , potential_writes, potential_errors as parameters where each are
@@ -263,8 +267,7 @@ if __name__ == '__main__':
 
                 #TODO: History for chat history with certain user, can be done at any time
                 if message['messageType'] == 'HISTORY_REQ':
-                    chatHistory = session.query(msgs).join(chat_sess).filter(((chat_sess.usr_id1 == message['senderID']) & (chat_sess.usr_id2 == message['targetID'])) | ((chat_sess.usr_id1 == message['targetID']) & (chat_sess.usr_id2 == message['senderID']))).order_by(msgs.sess_id, msgs.time).all()
-                    print(chatHistory)
+                    chatHistory = session.query(msgs).join(chat_sess).filter(((chat_sess.usr_id1 == message['senderID']) & (chat_sess.usr_id2 == message['targetID'])) | ((chat_sess.usr_id1 == message['targetID']) & (chat_sess.usr_id2 == message['senderID']))).order_by(msgs.time,msgs.sess_id).all()
                     machine = sv.createMachine(message['senderID'], clients)
                     indexOfSocketId = listOfClientsOnlineId.index(int(message['senderID']))
                     responseSocket = potential_readers[indexOfSocketId+2]
@@ -336,44 +339,6 @@ if __name__ == '__main__':
                     socketTypesRead.close()
                     # Delete the client socket message
                     del ClientMessageQueue[socketTypesRead]
-
-        '''
-        # Checking last seen status of clients
-        idsToRemove = []
-        print(listOfClientsOnlineId)
-        for clientID in listOfClientsOnlineId:
-            lastSeen = clients[clientID]['lastSeen']
-            #TODO remove the line below once keep alive is working. 
-            lastSeen = lastSeen if lastSeen is not None else datetime.now()
-            print(lastSeen)
-            currentTime = datetime.now()
-            print(currentTime)
-            diff =  currentTime - lastSeen 
-            print(diff.seconds)
-            if diff.seconds > 180:
-                if True:
-                    print('Logging off client:', clientID)
-                idsToRemove.append(clientID)
-                #remove socket
-                socketToRemove = clients[connected_client_id]['socket']
-                if socketToRemove in potential_readers:
-                    potential_readers.remove(socketToRemove)
-                if socketToRemove in potential_writes:
-                    potential_writes.remove(socketToRemove)
-                #disconnect the other client in chat with them if there is one.
-                targetClientIdPair = [tupleElem for tupleElem in connectedPair if tupleElem[0] == clientID or tupleElem[1] == clientID]
-                if targetClientIdPair:
-                    connectedPair.remove(targetClientIdPair[0])
-                    if targetClientIdPair[0][0] == clientID:
-                        sendNotifToID = targetClientIdPair[0][1]
-                    else:
-                        sendNotifToID = targetClientIdPair[0][0]
-                    machine = sv.createMachine(sendNotifToID, clients)
-                    sv.END_NOTIF(clients[sendNotifToID]['socket'], 0, machine)
-
-        for id in idsToRemove:
-            listOfClientsOnlineId.remove(id)
-        '''
 
         #####################################################
         #   TCP SECTION - CHAT PHASE - MESSAGE FORWARDING   #
