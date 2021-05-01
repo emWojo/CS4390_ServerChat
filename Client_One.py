@@ -265,7 +265,7 @@ while True:
             encMessage = machine.encryptMessage(unencBytes)
             clSock.CHAT(sessionID,encMessage)
             lock.acquire()
-            chat_timeout = 30
+            chat_timeout = TIMEOUT_VAL
             lock.release()
         # Send the command to end server
         else:
