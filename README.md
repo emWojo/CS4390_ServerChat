@@ -16,14 +16,14 @@ Run “python db.py” to set up the database
   </ul>
 </ul>
 
-##Run Commands 
+### Run Commands 
 
-### Server
+#### Server
 To run the server-side portion of the application in the console
 
 Type ‘’python serverMain.py
 
-### Client
+#### Client
 To run the client side portion of the application in the console
 
 Type ‘python Client_[Client_Name_Number].py’
@@ -32,7 +32,7 @@ For testing there are 4 Client_Name_Number number
 
 Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 
-### Clients Chats Commands
+#### Clients Chats Commands
 <ul>
 <li>logon - Connect the client to the server </li>
 <li>logoff - Disconnect the the client to the server </li>
