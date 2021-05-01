@@ -2,27 +2,34 @@ import socket
 import pickle
 import threading
 import time
-import sys
 import readline
+import sys
 import client as cl
 import bcrypt
 from secrets import token_urlsafe
 import hashlib
 from aesClass import aesCipher
-from utils import messageDict
+import utils
 from time import *
+from db_define import *
 
+
+utils.initClientOne()
 lock = threading.Lock()
-chat_timeout = 0
 TIMEOUT_VAL = 30
+RECVIN = True
+
 # The message receiving thread
 def msgRecv(cipherMachine: aesCipher):
-    while True:
+    #callsToDecrypt = 0
+    while RECVIN:
         # The receiving TCP socket
-        pickedEncMessage = (clSock.Tclient.recv(4096))
+        global chat_timeout
+        pickedEncMessage = clSock.Tclient.recv(65536)
+        #callsToDecrypt+=1
+        #print("This is call number", callsToDecrypt, "to decrypt.")
         pickedMessage = cipherMachine.decryptMessage(pickedEncMessage)
         message = pickle.loads(pickedMessage)
-        global chat_timeout
         if message['messageType'] == 'CHAT_STARTED':
             global msgTargetId
             msgTargetId = message['targetID']
@@ -32,15 +39,40 @@ def msgRecv(cipherMachine: aesCipher):
             timer_thread.start()
         elif  message['messageType'] == 'CHAT':
             lock.acquire()
-            chat_timeout = 30
+            #print(chat_timeout)
+            chat_timeout = TIMEOUT_VAL
             lock.release()
-        # Handle object data
+        elif message['messageType'] == 'HISTORY_RES':
+            lock.acquire()
+            #print(chat_timeout)
+            chat_timeout = TIMEOUT_VAL
+            lock.release()
+            if len(message['messageBody']) > 0:
+                for msg in message['messageBody']:
+                    print(msg.sess_id, "from:", msg.sender_id, " ", msg.msg_body)
+            else:
+                print('No History Found.')
+            message['messageBody'] = 'History Printed.'
+        
         elif message['messageType'] == 'END_NOTIF':
             msgTargetId = -1
             sessionID = -1
             lock.acquire()
             chat_timeout = 0
             lock.release()
+
+        elif message['messageType'] == 'LOG_OFF':
+            clSock.Tclient.close()
+            clSock.Tclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            lock.acquire()
+            chat_timeout = 0
+            lock.release()
+            sleep(2)
+            #print(timer_thread.is_alive())
+            sys.exit()
+            break
+        
+        # Handle object data
         if len(pickedEncMessage) == 0:
             break
         else:
@@ -53,6 +85,8 @@ def msgRecv(cipherMachine: aesCipher):
             print('Your msg: ', end='')
             sys.stdout.write(readline.get_line_buffer())
             sys.stdout.flush()
+            
+
 
 def keepAlive():
 
@@ -67,16 +101,24 @@ def chatTimeout():
     global chat_timeout
     chat_timeout = TIMEOUT_VAL
     lock.release()
-    while True:
+    while RECVIN:
         sleep(1) # Sleep for 1 second 
         lock.acquire()
         chat_timeout = chat_timeout - 1
         actualTimeout = True if chat_timeout == 0 else False
         lock.release()
-        if chat_timeout == 0:
+        if chat_timeout <= 0:
             break # Timer ran out, exit function ( Which also end the thread )
         elif chat_timeout == 10:
-            print(' \n Chat is disconnecting (Auto Log-off) in 10 seconds, send or recive a message to reset the timer')   
+            msg = 'Chat is disconnecting (Auto Log-off) in 10 seconds, send or recive a message to reset the timer'
+            sys.stdout.write("\r" + '------------\n')
+            print(msg)
+            sys.stdout.flush()
+            # Get the current line buffer and reprint it, in case some input had started to be entered when the prompt was switched
+            print('------------')
+            print('Your msg: ', end='')
+            sys.stdout.write(readline.get_line_buffer())
+            sys.stdout.flush()   
     # End connection with the other Client
     if actualTimeout:
         clSock.END_REQUEST(sessionID, msgTargetId)
@@ -98,15 +140,30 @@ print(" CLient 2 ")
 senderKey = str(200)
 senderId = str(222)
 msgTargetId = -1
-udpConnect = True
+# 0-not logged on, 1-connect phase, 2-chat phase
+connectType = 0
 reply = None
 sessionID = 1000
+recvThread = None
+chat_timeout = 30
 
-
+# We are passing sender id  and sender key to the clientAPI 
 clSock = cl.clientAPI(int(senderId),int(senderKey))
 while True:
     # Initiation Phase
-    if udpConnect:
+    if connectType == 0:
+        #TODO: Wait for log on message
+        #print(threading.enumerate())
+        print("Type 'logon' to start connection  or 'exit' to shut the app")
+        ins = input()
+        if ins == "logon":
+            connectType = 1
+        elif ins == "exit":
+            exit()
+        else:
+            print('Invalid input.')
+    # Connect Phase
+    elif connectType == 1:
         try:
             if reply == None:
                 clSock.HELLO()
@@ -120,18 +177,19 @@ while True:
                 clSock.Uclient.close()
                 break
             elif reply != [] and reply[0] == "AUTH_SUCCESS":
-                udpConnect = False
+                connectType = 2
                 # Make TCP Connection
                 clSock.Tclient.connect(('localhost', 6265))
-                message = messageDict(senderId, "CONNECT", cookie=randomCookie)
+                message = utils.messageDict(senderId, "CONNECT", cookie=randomCookie)
                 unencBytes = pickle.dumps(message)
                 encMessage = machine.encryptMessage(unencBytes)
                 clSock.CONNECT(encMessage)
                 print('Sent Connect message')
                 # Start the thread to receive message with non blocking type
-                threading.Thread(target=msgRecv, args=(machine,)).start()
+                recvThread = threading.Thread(target=msgRecv, args=(machine,))
+                recvThread.start()
                 #threading.Thread(target=keepAlive).start()
-            if udpConnect:
+            if connectType == 1:
                 # Time out period
                 clSock.Uclient.settimeout(5)
                 # Retrieve Data
@@ -157,7 +215,7 @@ while True:
     else:
         # CHAT PHASE
         # Ask user for input
-        msgInput = input("Your Msg : ")
+        msgInput = input("Your Msg: ")
 
         # If chat message start with the word chat , it indicate that the client is making a chat request to a target
         # client. Currently both clients need to target each other using the chat command
@@ -165,11 +223,12 @@ while True:
 
         if msgInput.split()[0] == 'chat':
             # The sender id of this client
-            #var.senderId = 222
+            #var.senderId = 111
             # The target id of the client
-            #var.targetId = msgInput.split()[1] 
+            #var.targetId = msgInput.split()[1]
             # Set the target id based on the value following the chat keyword
             # chat [target_id_number]
+            #msgTargetId = msgInput.split()[1]
             # Message type so the server set up the target client
             #var.msgType = 'CHATSET'
             #var.msgBody = msgInput
@@ -177,12 +236,12 @@ while True:
             # Send data to the server
             #clSock.Tclient.send(dataObject)
             msgTargetId = int(msgInput.split()[1])
-
             clSock.CHAT_REQUEST(int(msgInput.split()[1]))
-
+        # Get Chat History
+        elif msgInput.split()[0] == 'history':
+            clSock.HISTORY_REQ(int(msgInput.split()[1]))
         # End Chat 
         elif msgInput == 'end chat':
-
             clSock.END_REQUEST(sessionID, msgTargetId)
             # End Timer 
             '''
@@ -190,10 +249,18 @@ while True:
             chat_timeout = 0
             lock.release()
             '''
-        elif msgInput != 'end client':
-            print('---------')
+        elif msgInput == "logoff":
+            #Tell server logging off
+            #Stop receiving messages
+            #recvThread.join()
+            #Tear down TCP connection
+            clSock.LOG_OFF(msgTargetId, sessionID)
+            connectType = 0
 
-            message = messageDict(senderID=senderId, messageType="CHAT",messageBody=msgInput, targetID=msgTargetId, cookie=randomCookie, sessionID=sessionID)
+        elif msgInput != 'end client':
+            print('------------')
+
+            message = utils.messageDict(senderID=senderId, messageType="CHAT",messageBody=msgInput, targetID=msgTargetId, cookie=randomCookie, sessionID=sessionID)
             unencBytes = pickle.dumps(message)
             encMessage = machine.encryptMessage(unencBytes)
             clSock.CHAT(sessionID,encMessage)
@@ -201,7 +268,6 @@ while True:
             chat_timeout = 30
             lock.release()
         # Send the command to end server
-
         else:
             msgInput = 'end server'
             clSock.Tclient.send(bytes(msgInput, 'utf-8'))

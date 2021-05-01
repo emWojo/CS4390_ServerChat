@@ -74,7 +74,18 @@ def END_NOTIF (socket, sessionID, machine):
     socket.send(encMessage)   
 
 def HISTORY_RES (socket, history, machine):
+    """
+    historyStr = []
+    for msg in history:
+        historyStr.append(str(msg.sess_id)+" from: "+str(msg.sender_id)+"  "+str(msg.msg_body))
+    """
     message = messageDict(senderID='Server', messageType='HISTORY_RES', messageBody=history)
+    pickleMessage = pickle.dumps(message)
+    encMessage = machine.encryptMessage(pickleMessage) 
+    socket.send(encMessage)
+
+def LOG_OFF(socket, machine):
+    message = messageDict(senderID='Server', messageType='LOG_OFF')
     pickleMessage = pickle.dumps(message)
     encMessage = machine.encryptMessage(pickleMessage) 
     socket.send(encMessage)
@@ -98,10 +109,11 @@ def disconnectMsg(message, clients, potential_readers, listOfClientsOnlineId):
     machine = createMachine(connectionSenderId, clients)
     END_NOTIF(responseSocket, SessionID, machine)
     # The target
-    indexOfSocketId = listOfClientsOnlineId.index(int(connectionTargetId))
-    responseSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
-    machine2 = createMachine(connectionTargetId, clients)
-    END_NOTIF(responseSocket, SessionID, machine2)
+    if int(connectionTargetId) > 0:
+        indexOfSocketId = listOfClientsOnlineId.index(int(connectionTargetId))
+        responseSocket = potential_readers[indexOfSocketId+2] # +2 to account for the already existing sockets
+        machine2 = createMachine(connectionTargetId, clients)
+        END_NOTIF(responseSocket, SessionID, machine2)
 
 
 

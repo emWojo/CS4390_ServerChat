@@ -82,7 +82,7 @@ if __name__ == '__main__':
     # Insert usrs from DB query into usr dictionary
     for usr in usrTableResult:
         usrDict = {'password': usr.pwd, 'salt':None, 'saltedPassword':None, 'portNumber': PORT, 'cookie':None, 
-        'lastSeen': None, 'socket':None, 'kasocket':None}
+        'lastSeen': None, 'socket':None}
         clients[int(usr.usr_id)] = usrDict
 
     if DEBUG_MODE:
@@ -162,7 +162,7 @@ if __name__ == '__main__':
             ################################
             else: 
                 # Read and decrypt tcp input string
-                id_encBytes = socketTypesRead.recv(4096)
+                id_encBytes = socketTypesRead.recv(65536)
                 if len(id_encBytes) < 3:
                     #if invalid message received ignore it
                     continue
@@ -178,7 +178,7 @@ if __name__ == '__main__':
                 if message['messageType'] == 'CONNECT':
                     if message['cookie'] == clients[id]['cookie']:
                         connected_client_id = int(message['senderID'])
-                        message = messageDict(senderID='Server', messageType='CONNECTED')
+                        message = messageDict(senderID='Server', messageType='CONNECTED', messageBody='Connected to the Server.')
                         pickMessage = pickle.dumps(message)
                         encMessage = machine.encryptMessage(pickMessage)
                         sv.CONNECTED(socketTypesRead, encMessage)
@@ -264,15 +264,39 @@ if __name__ == '__main__':
                 #TODO: History for chat history with certain user, can be done at any time
                 if message['messageType'] == 'HISTORY_REQ':
                     chatHistory = session.query(msgs).join(chat_sess).filter(((chat_sess.usr_id1 == message['senderID']) & (chat_sess.usr_id2 == message['targetID'])) | ((chat_sess.usr_id1 == message['targetID']) & (chat_sess.usr_id2 == message['senderID']))).order_by(msgs.sess_id, msgs.time).all()
+                    print(chatHistory)
                     machine = sv.createMachine(message['senderID'], clients)
                     indexOfSocketId = listOfClientsOnlineId.index(int(message['senderID']))
-                    responseSocket = potential_readers[indexOfSocketId]
+                    responseSocket = potential_readers[indexOfSocketId+2]
                     sv.HISTORY_RES(responseSocket, chatHistory, machine)
+                    continue
                 
                 #TODO: Logoff at any time?
                 if message['messageType'] == 'LOG_OFF':
-                    # tear down everything
-                    pass
+                    #send logoff back to client
+                    connectionSenderId = int(message['senderID'])
+                    machine = sv.createMachine(connectionSenderId, clients)
+                    indexOfSocketId = listOfClientsOnlineId.index(int(connectionSenderId))
+                    responseSocket = potential_readers[indexOfSocketId+2]
+                    sv.LOG_OFF(responseSocket, machine)
+                    
+                    #Tear down everythin
+                    targetClientIdPair = [tupleElem for tupleElem in connectedPair 
+                        if tupleElem[0] == connectionSenderId  or tupleElem[1] == connectionSenderId]
+
+                    if targetClientIdPair:
+                        #end chat session
+                        sv.disconnectMsg(message, clients, potential_readers, listOfClientsOnlineId)
+                        connectedPair.remove(targetClientIdPair[0])
+                        
+                    #end tcp connection
+                    listOfClientsOnlineId.remove(connectionSenderId)
+                    socketToRemove = clients[connectionSenderId]['socket']
+                    if socketToRemove in potential_readers:
+                        potential_readers.remove(socketToRemove)
+                    if socketToRemove in potential_writes:
+                        potential_writes.remove(socketToRemove)
+                    continue
 
                 #Receive KEEP_ALIVE requests
                 if message['messageType'] == 'KEEP_ALIVE':

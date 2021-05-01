@@ -11,19 +11,23 @@ import hashlib
 from aesClass import aesCipher
 import utils
 from time import *
+from db_define import *
 
-# TODO: Add activity timer
 
 utils.initClientOne()
 lock = threading.Lock()
 TIMEOUT_VAL = 30
+RECVIN = True
 
 # The message receiving thread
 def msgRecv(cipherMachine: aesCipher):
-    while True:
+    #callsToDecrypt = 0
+    while RECVIN:
         # The receiving TCP socket
-        #global chat_timeout
-        pickedEncMessage = (clSock.Tclient.recv(4096))
+        global chat_timeout
+        pickedEncMessage = clSock.Tclient.recv(65536)
+        #callsToDecrypt+=1
+        #print("This is call number", callsToDecrypt, "to decrypt.")
         pickedMessage = cipherMachine.decryptMessage(pickedEncMessage)
         message = pickle.loads(pickedMessage)
         if message['messageType'] == 'CHAT_STARTED':
@@ -36,25 +40,38 @@ def msgRecv(cipherMachine: aesCipher):
         elif  message['messageType'] == 'CHAT':
             lock.acquire()
             #print(chat_timeout)
-            utils.chat_timeout1 = TIMEOUT_VAL
+            chat_timeout = TIMEOUT_VAL
             lock.release()
         elif message['messageType'] == 'HISTORY_RES':
             lock.acquire()
             #print(chat_timeout)
-            utils.chat_timeout1 = TIMEOUT_VAL
+            chat_timeout = TIMEOUT_VAL
             lock.release()
             if len(message['messageBody']) > 0:
                 for msg in message['messageBody']:
                     print(msg.sess_id, "from:", msg.sender_id, " ", msg.msg_body)
             else:
                 print('No History Found.')
-
+            message['messageBody'] = 'History Printed.'
+        
         elif message['messageType'] == 'END_NOTIF':
             msgTargetId = -1
             sessionID = -1
             lock.acquire()
-            utils.chat_timeout1 = 0
+            chat_timeout = 0
             lock.release()
+
+        elif message['messageType'] == 'LOG_OFF':
+            clSock.Tclient.close()
+            clSock.Tclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            lock.acquire()
+            chat_timeout = 0
+            lock.release()
+            sleep(2)
+            #print(timer_thread.is_alive())
+            sys.exit()
+            break
+        
         # Handle object data
         if len(pickedEncMessage) == 0:
             break
@@ -81,19 +98,27 @@ def keepAlive():
 def chatTimeout():
     actualTimeout = False
     lock.acquire()
-    #global chat_timeout
-    utils.chat_timeout1 = TIMEOUT_VAL
+    global chat_timeout
+    chat_timeout = TIMEOUT_VAL
     lock.release()
-    while True:
+    while RECVIN:
         sleep(1) # Sleep for 1 second 
         lock.acquire()
-        utils.chat_timeout1 = utils.chat_timeout1 - 1
-        actualTimeout = True if utils.chat_timeout1 == 0 else False
+        chat_timeout = chat_timeout - 1
+        actualTimeout = True if chat_timeout == 0 else False
         lock.release()
-        if utils.chat_timeout1 == 0:
+        if chat_timeout <= 0:
             break # Timer ran out, exit function ( Which also end the thread )
-        elif utils.chat_timeout1 == 10:
-            print(' \n Chat is disconnecting (Auto Log-off) in 10 seconds, send or recive a message to reset the timer')   
+        elif chat_timeout == 10:
+            msg = 'Chat is disconnecting (Auto Log-off) in 10 seconds, send or recive a message to reset the timer'
+            sys.stdout.write("\r" + '------------\n')
+            print(msg)
+            sys.stdout.flush()
+            # Get the current line buffer and reprint it, in case some input had started to be entered when the prompt was switched
+            print('------------')
+            print('Your msg: ', end='')
+            sys.stdout.write(readline.get_line_buffer())
+            sys.stdout.flush()   
     # End connection with the other Client
     if actualTimeout:
         clSock.END_REQUEST(sessionID, msgTargetId)
@@ -116,10 +141,11 @@ senderKey = str(100)
 senderId = str(111)
 msgTargetId = -1
 # 0-not logged on, 1-connect phase, 2-chat phase
-connectType = 1
+connectType = 0
 reply = None
 sessionID = 1000
-utils.chat_timeout1 = 30
+recvThread = None
+chat_timeout = 30
 
 # We are passing sender id  and sender key to the clientAPI 
 clSock = cl.clientAPI(int(senderId),int(senderKey))
@@ -127,9 +153,15 @@ while True:
     # Initiation Phase
     if connectType == 0:
         #TODO: Wait for log on message
+        #print(threading.enumerate())
+        print("Type 'logon' to start connection  or 'exit' to shut the app")
         ins = input()
-        if ins == "log on":
+        if ins == "logon":
             connectType = 1
+        elif ins == "exit":
+            exit()
+        else:
+            print('Invalid input.')
     # Connect Phase
     elif connectType == 1:
         try:
@@ -154,7 +186,8 @@ while True:
                 clSock.CONNECT(encMessage)
                 print('Sent Connect message')
                 # Start the thread to receive message with non blocking type
-                threading.Thread(target=msgRecv, args=(machine,)).start()
+                recvThread = threading.Thread(target=msgRecv, args=(machine,))
+                recvThread.start()
                 #threading.Thread(target=keepAlive).start()
             if connectType == 1:
                 # Time out period
@@ -216,11 +249,14 @@ while True:
             chat_timeout = 0
             lock.release()
             '''
-        elif msgInput == "log off":
-            #TODO: Tear down TCP socket
+        elif msgInput == "logoff":
             #Tell server logging off
-            clSock.LOG_OFF()
-            break
+            #Stop receiving messages
+            #recvThread.join()
+            #Tear down TCP connection
+            clSock.LOG_OFF(msgTargetId, sessionID)
+            connectType = 0
+
         elif msgInput != 'end client':
             print('------------')
 
@@ -229,7 +265,7 @@ while True:
             encMessage = machine.encryptMessage(unencBytes)
             clSock.CHAT(sessionID,encMessage)
             lock.acquire()
-            utils.chat_timeout1 = 30
+            chat_timeout = 30
             lock.release()
         # Send the command to end server
         else:
