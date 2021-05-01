@@ -46,11 +46,19 @@ Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 ## Chat Session Validation
 
 ### Basic Chat initiated and closed by A
+![1](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initCloseA.gif)
+
+### Basic Chat initiated by A and closed by B
+![2](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initAendB.gif)
 
 ### Basic Chat initiated by A , but B initially not connected
+![3](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initAnotConB.gif)
 
-### Basic Chat initiated by C, but B is already in another chat  
+### Basic Chat initiated by C, but B is already in another chat
+![4](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/3interrupts.gif)
 
 ### History Recall
+![5](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/historyAB.gif)
 
 ### Simultaneous Chat Sessions
+https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/5chats_v2.gif 
