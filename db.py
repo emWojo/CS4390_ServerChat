@@ -50,6 +50,12 @@ session.add_all([
     db_usrs(usr_id = 222, name = "Emily", pwd = '200'),
     db_usrs(usr_id = 333, name = "Joshua", pwd = '300'),
     db_usrs(usr_id = 444, name = "Rutvij", pwd = '400'),
+    db_usrs(usr_id = 555, name = "Bob", pwd = '500'),
+    db_usrs(usr_id = 666, name = "Sam", pwd = '600'),
+    db_usrs(usr_id = 777, name = "Joe", pwd = '700'),
+    db_usrs(usr_id = 888, name = "Bro", pwd = '800'),
+    db_usrs(usr_id = 999, name = "TimTam", pwd = '900'),
+    db_usrs(usr_id = 100, name = "DrWho", pwd = '111'),
 ])
 
 session.commit()

@@ -19,8 +19,8 @@ lock = threading.Lock()
 RECVIN = True
 
 # Send in the id of the client to the server
-senderKey = str(300)
-senderId = str(333)
+senderKey = str(700)
+senderId = str(777)
 msgTargetId = -1
 # 0-not logged on, 1-connect phase, 2-chat phase
 connectType = 0
@@ -134,7 +134,7 @@ def chatTimeout():
         clSock.END_REQUEST(sessionID, msgTargetId)
 
 # Client Title
-print(" CLient 3 ")
+print(" CLient 7 ")
 
 
 # Create a TCP socket
@@ -145,7 +145,7 @@ print(" CLient 3 ")
 
 # ====================================================
 # The Client TCP section - Mixed for now
-# ===================================================
+# ====================================================
 
 # We are passing sender id  and sender key to the clientAPI 
 clSock = cl.clientAPI(int(senderId),int(senderKey))

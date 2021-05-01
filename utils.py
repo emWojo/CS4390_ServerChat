@@ -1,16 +1,7 @@
-
-
+import os
 
 #Global Constants
-TIMEOUT_VAL = 30
-
-#Global Variables
-chat_timeout1 = None
-
-def initClientOne():
-    global chat_timeout1
-    chat_timeout1 = 0
-
+TIMEOUT_VAL = 3000
 
 def messageDict(senderID, messageType, messageBody=None, 
 targetID=None, sessionID=None, cookie=None 
@@ -38,4 +29,8 @@ def sesessionIdGen(listOfExistingSessionIDs):
             return i#
             
 
-
+def screenClear():
+    if os.name == 'posix':
+        os.system('clear')
+    else:
+        os.system('cls')

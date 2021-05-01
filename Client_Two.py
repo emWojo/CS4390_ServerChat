@@ -10,14 +10,24 @@ from secrets import token_urlsafe
 import hashlib
 from aesClass import aesCipher
 import utils
+from utils import TIMEOUT_VAL
 from time import *
 from db_define import *
 
 
-utils.initClientOne()
 lock = threading.Lock()
-TIMEOUT_VAL = 30
 RECVIN = True
+
+# Send in the id of the client to the server
+senderKey = str(200)
+senderId = str(222)
+msgTargetId = -1
+# 0-not logged on, 1-connect phase, 2-chat phase
+connectType = 0
+reply = None
+sessionID = 1000
+recvThread = None
+chat_timeout = TIMEOUT_VAL
 
 # The message receiving thread
 def msgRecv(cipherMachine: aesCipher):
@@ -136,16 +146,6 @@ print(" CLient 2 ")
 # ====================================================
 # The Client TCP section - Mixed for now
 # ====================================================
-# Send in the id of the client to the server
-senderKey = str(200)
-senderId = str(222)
-msgTargetId = -1
-# 0-not logged on, 1-connect phase, 2-chat phase
-connectType = 0
-reply = None
-sessionID = 1000
-recvThread = None
-chat_timeout = 30
 
 # We are passing sender id  and sender key to the clientAPI 
 clSock = cl.clientAPI(int(senderId),int(senderKey))
@@ -159,6 +159,7 @@ while True:
         if ins == "logon":
             connectType = 1
         elif ins == "exit":
+            utils.screenClear()
             exit()
         else:
             print('Invalid input.')

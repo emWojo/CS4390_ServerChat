@@ -74,9 +74,9 @@ addrToId = {}
 # ====================================================
 # The server TCP section
 # ====================================================
-# The TCP server will listen to up to 8 connection
+# The TCP server will listen to up to 16 connection
 # This for the TCP  server socket
-tcpSocket.listen(8)
+tcpSocket.listen(16)
 
 # A list that will contain all curently client connected socket
 listOfClientSocketOnline = []
@@ -386,5 +386,4 @@ while True:
                 # If any error occurs during writing target
                 except Exception as e:
                     if DEUBUG_MODE:
-
-                                    print("Exception: ", str(e), " was raised Second")
+                         print("Exception: ", str(e), " was raised Second")
