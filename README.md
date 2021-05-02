@@ -33,7 +33,7 @@ Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 - `logon` - Connect the client to the server
 - `logoff` - Disconnect the the client to the server
 - `chat <Target-Client-ID>` - Allows a client to send a chat request to the server
-   - <Target-Client-ID> is the id of the client, One -> 111, Two -> 222 and so on.
+   - `<Target-Client-ID>` is the id of the client, One -> 111, Two -> 222 and so on.
 - `end chat`  - Allows a client to send an end chat request to the server
 - `end client` - Closes the client chat application
 - `end server` - Closes the server application
