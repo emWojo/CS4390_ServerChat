@@ -18,27 +18,26 @@ Run `python3 db.py` to set up the database
 #### Server
 To run the server-side portion of the application in the console
 
-Type `python serverMain.py`
+Type `python3 serverMain.py`
 
 #### Client
 To run the client side portion of the application in the console
 
-Type `python Client_[Client_Name_Number].py`
+Type `python3 Client_[Client_Name_Number].py`
 
 For testing there are 4 Client_Name_Number number
 
 Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 
 #### Clients Chats Commands
-<ul>
-<li>logon - Connect the client to the server </li>
-<li>logoff - Disconnect the the client to the server </li>
-<li>chat Target-Client-ID - Allows a client to send a chat request to the server </li>
-<li>end chat  - Allows a client to send an end chat request to the server </li>
-<li>end client - Closes the client chat application </li>
-<li>end server - Closes the server application </li>
-<li>history Target-Client-ID - Allows a client to see their chat history with another client. </li>
-</ul>
+- `logon` - Connect the client to the server
+- `logoff` - Disconnect the the client to the server
+- `chat <Target-Client-ID>` - Allows a client to send a chat request to the server
+   - <Target-Client-ID> is the id of the client, One -> 111, Two -> 222 and so on.
+- `end chat`  - Allows a client to send an end chat request to the server
+- `end client` - Closes the client chat application
+- `end server` - Closes the server application
+- `history <Target-Client-ID>` - Allows a client to see their chat history with another client.
 
 ## Chat Session Validation
 
