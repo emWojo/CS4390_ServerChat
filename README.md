@@ -8,13 +8,10 @@ Run `pip3  install -r requirements.txt` to download all the needed libraries
 Run `python3 db.py` to set up the database
 
 ### Downloading The Application
-<ul>
-<li> `git clone https://github.com/emWojo/CS4390_ServerChat.git`
-<li>From E-Learning
-  <ul>
-<li>Download the project archive file ‘project-code.zip’ and extract the project folder from it.
-  </ul>
-</ul>
+- `git clone https://github.com/emWojo/CS4390_ServerChat.git`
+- From E-Learning
+   - Download the project archive file ‘project-code.zip’ and extract the project folder from it.
+
 
 ### Run Commands 
 
