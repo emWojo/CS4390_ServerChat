@@ -42,19 +42,22 @@ Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 ## Chat Session Validation
 
 ### Basic Chat initiated and closed by A
-![1](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initCloseA.gif)
+![1](https://i.postimg.cc/Yq1Cy42Z/init-Close-A.gif)
 
 ### Basic Chat initiated by A and closed by B
-![2](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initAendB.gif)
+![2](https://i.postimg.cc/7YvLV14S/init-Aend-B.gif)
 
 ### Basic Chat initiated by A , but B initially not connected
-![3](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initAnotConB.gif)
+![3](https://i.postimg.cc/JnvzSZkV/init-Anot-Con-B.gif)
 
 ### Basic Chat initiated by C, but B is already in another chat
-![4](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/3interrupts.gif)
+![4](https://i.postimg.cc/k4B5jfDv/3interrupts.gif)
 
 ### History Recall
-![5](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/historyAB.gif)
+![5](https://i.postimg.cc/P5T5GtPx/history-AB.gif)
 
 ### Simultaneous Chat Sessions
-https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/5chats_v2.gif 
+[Link to Download](https://drive.google.com/file/d/1uRbGrFz3BqiixAp5JABIjKXJSvS3caqr/view?usp=sharing)
+
+### All GIFs can be downloaded from the following link
+[GIFs PermaStore](https://drive.google.com/drive/folders/1p2gQRS_eCdHSbtNXnFoIV5Ht92fOMUA6?usp=sharing)
