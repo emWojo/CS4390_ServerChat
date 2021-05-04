@@ -41,25 +41,26 @@ Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 
 ## Chat Session Validation
 
+
 ### Basic Chat initiated and closed by A
 ![1](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initCloseA.gif)
-Backup Link: [init-Close-A.gif](https://i.postimg.cc/Yq1Cy42Z/init-Close-A.gif)
+Backup Link: [init-Close-A.gif](https://i.postimg.cc/C5LQXG5h/init-Close-A.gif)
 
 ### Basic Chat initiated by A and closed by B
 ![2](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initAendB.gif)
-Backup Link: [init-Aend-B.gif](https://i.postimg.cc/7YvLV14S/init-Aend-B.gif)
+Backup Link: [init-Aend-B.gif](https://i.postimg.cc/85G3BQVr/init-Aend-B.gif)
 
 ### Basic Chat initiated by A , but B initially not connected
 ![3](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/initAnotConB.gif)
-Backup Link: [init-Anot-Con-B.gif](https://i.postimg.cc/JnvzSZkV/init-Anot-Con-B.gif)
+Backup Link: [init-Anot-Con-B.gif](https://i.postimg.cc/FsHMB4ky/init-Anot-Con-B.gif)
 
 ### Basic Chat initiated by C, but B is already in another chat
 ![4](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/3interrupts.gif)
-Backup Link: [3interrupts.gif](https://i.postimg.cc/k4B5jfDv/3interrupts.gif)
+Backup Link: [3interrupts.gif](https://i.postimg.cc/j5rVgny2/3interrupts.gif)
 
 ### History Recall
 ![5](https://github.com/emWojo/CS4390_ServerChat/blob/main/gifs/historyAB.gif)
-Backup Link: [history-AB.gif](https://i.postimg.cc/P5T5GtPx/history-AB.gif)
+Backup Link: [history-AB.gif](https://i.postimg.cc/RVYDpnBm/history-AB.gif)
 
 ### Simultaneous Chat Sessions
 [Link to Download](https://drive.google.com/file/d/1uRbGrFz3BqiixAp5JABIjKXJSvS3caqr/view?usp=sharing)
