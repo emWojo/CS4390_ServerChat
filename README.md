@@ -36,7 +36,6 @@ Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
    - `<Target-Client-ID>` is the id of the client, One -> 111, Two -> 222 and so on.
 - `end chat`  - Allows a client to send an end chat request to the server
 - `end client` - Closes the client chat application
-- `end server` - Closes the server application
 - `history <Target-Client-ID>` - Allows a client to see their chat history with another client.
 
 ## Chat Session Validation
