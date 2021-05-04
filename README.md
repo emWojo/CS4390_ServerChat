@@ -63,6 +63,7 @@ Backup Link: [3interrupts.gif](https://i.postimg.cc/j5rVgny2/3interrupts.gif)
 Backup Link: [history-AB.gif](https://i.postimg.cc/RVYDpnBm/history-AB.gif)
 
 ### Simultaneous Chat Sessions
+![](https://drive.google.com/file/d/1fh-A--MU5zd0YaVaoEl6izGcy57BbBBD/preview)
 [Link to Download](https://drive.google.com/file/d/1fh-A--MU5zd0YaVaoEl6izGcy57BbBBD/view?usp=sharing)
 
 ### All GIFs can be downloaded from the following link
