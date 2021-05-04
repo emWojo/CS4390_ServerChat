@@ -42,19 +42,19 @@ Client_One.py, Client_Two.py, Client_Three.py, Client_Four.py
 ## Chat Session Validation
 
 ### Basic Chat initiated and closed by A
-![1](https://i.postimg.cc/Yq1Cy42Z/init-Close-A.gif)
+[![init-Close-A.gif](https://i.postimg.cc/Yq1Cy42Z/init-Close-A.gif)](https://postimg.cc/4mxGYx9Q)
 
 ### Basic Chat initiated by A and closed by B
-![2](https://i.postimg.cc/7YvLV14S/init-Aend-B.gif)
+[![init-Aend-B.gif](https://i.postimg.cc/7YvLV14S/init-Aend-B.gif)](https://postimg.cc/Hj2HWyVL)
 
 ### Basic Chat initiated by A , but B initially not connected
-![3](https://i.postimg.cc/JnvzSZkV/init-Anot-Con-B.gif)
+[![init-Anot-Con-B.gif](https://i.postimg.cc/JnvzSZkV/init-Anot-Con-B.gif)](https://postimg.cc/N98tHyDp)
 
 ### Basic Chat initiated by C, but B is already in another chat
-![4](https://i.postimg.cc/k4B5jfDv/3interrupts.gif)
+[![3interrupts.gif](https://i.postimg.cc/k4B5jfDv/3interrupts.gif)](https://postimg.cc/R6x9h17W)
 
 ### History Recall
-![5](https://i.postimg.cc/P5T5GtPx/history-AB.gif)
+[![history-AB.gif](https://i.postimg.cc/P5T5GtPx/history-AB.gif)](https://postimg.cc/QHY31ZgG)
 
 ### Simultaneous Chat Sessions
 [Link to Download](https://drive.google.com/file/d/1uRbGrFz3BqiixAp5JABIjKXJSvS3caqr/view?usp=sharing)
